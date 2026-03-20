@@ -45,6 +45,12 @@
     color: var(--black);
   }
 
+  img, svg, button, .mode-btn, .nav-btn, .cookie-btn {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-user-drag: none;
+  }
+
   /* ── LAYOUT ── */
   #app {
     position: relative;
@@ -133,9 +139,8 @@
 
   /* ── CANVAS AREA inside artboard ── */
   #canvas-wrap {
-    position: relative;
-    width: 100%;
-    height: 100%;
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
     transform-style: preserve-3d;
   }
 
@@ -1188,6 +1193,51 @@ window.addEventListener('resize', () => {
     }
   }, 100);
 });
+
+// ── TOUCH helper ──
+function touchPos(e) {
+  const t = e.touches[0] || e.changedTouches[0];
+  const r = canvasWrap.getBoundingClientRect();
+  return { x: t.clientX - r.left, y: t.clientY - r.top, clientX: t.clientX, clientY: t.clientY };
+}
+
+// ── TOUCH: Slice (mode B) ──
+canvasWrap.addEventListener('touchstart', e => {
+  if (!originalSvgContent || mode !== 'B') return;
+  if (e.target.closest('#panel') || e.target.closest('#bottom-left')) return;
+  e.preventDefault();
+  isDragging = true;
+  const p = touchPos(e);
+  dragStart = { x: p.x, y: p.y }; dragEnd = { x: p.x, y: p.y };
+  previewSvg.style.display = 'block'; previewSvg.innerHTML = '';
+}, { passive: false });
+
+canvasWrap.addEventListener('touchmove', e => {
+  if (!isDragging || mode !== 'B') return;
+  e.preventDefault();
+  const p = touchPos(e);
+  dragEnd = { x: p.x, y: p.y }; drawPreview(dragStart, dragEnd);
+}, { passive: false });
+
+canvasWrap.addEventListener('touchend', e => {
+  if (!isDragging || mode !== 'B') return;
+  isDragging = false;
+  const p = touchPos(e);
+  dragEnd = { x: p.x, y: p.y };
+  previewSvg.innerHTML = ''; previewSvg.style.display = 'none';
+  const dx = dragEnd.x - dragStart.x, dy = dragEnd.y - dragStart.y;
+  if (Math.sqrt(dx * dx + dy * dy) < 8) return;
+  triggerModeB(dragStart, dragEnd);
+});
+
+// ── TOUCH: Crush (mode A) ──
+canvasWrap.addEventListener('touchstart', e => {
+  if (!originalSvgContent || mode !== 'A') return;
+  e.preventDefault();
+  const p = touchPos(e);
+  const scale = getScale(); const { offX, offY } = getOff(scale);
+  triggerModeA((p.x - offX) / scale, (p.y - offY) / scale);
+}, { passive: false });
 
 // ── EVENTS on canvas ──
 canvasWrap.addEventListener('mousedown', e => {
