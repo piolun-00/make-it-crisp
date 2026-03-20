@@ -1,13 +1,20 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CRISP — Khorei</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fragment+Mono&display=swap" rel="stylesheet">
+<title>Make it Crisp! — Khorei Lab</title>
+<meta name="description" content="Crush, slice & break your SVGs into pieces. A destructive design tool by Khorei Lab.">
 <style>
+  @font-face {
+    font-family: 'Fragment Mono';
+    src: url('fonts/FragmentMono-Regular.woff2') format('woff2'),
+         url('fonts/FragmentMono-Regular.woff') format('woff');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
@@ -16,7 +23,16 @@
     --black: #1a1a1a;
     --dark: #292929;
     --gray: #bababa;
-    --shadow: 0px 3px 6px rgba(0,0,0,.10), 0px 10px 10px rgba(0,0,0,.09), 0px 23px 14px rgba(0,0,0,.05), 0px 41px 16px rgba(0,0,0,.01), 0px 64px 18px rgba(0,0,0,0);
+    --accent: #eeff00;
+    --accent-border: #c9d700;
+    --accent-inset: #abb701;
+    --border: #ededed;
+    --artboard-border: #e8e4dd;
+    --shadow: 0px 3px 6px rgba(0,0,0,.10),
+              0px 10px 10px rgba(0,0,0,.09),
+              0px 23px 14px rgba(0,0,0,.05),
+              0px 41px 16px rgba(0,0,0,.01),
+              0px 64px 18px rgba(0,0,0,0);
     --mono: 'Fragment Mono', monospace;
   }
 
@@ -37,40 +53,88 @@
     justify-content: center;
   }
 
-  /* ── KHOREI LOGO top center ── */
+  /* ── KHOREI LOGO ── */
   #logo {
     position: absolute;
     top: 28px;
     left: 50%;
     transform: translateX(-50%);
-    display: grid;
-    grid-template-columns: repeat(3, 24px);
-    grid-template-rows: repeat(3, 24px);
+    user-select: none;
+    -webkit-user-select: none;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: space-between;
     gap: 0;
-    font-family: 'FK Grotesk', var(--mono);
-    font-size: 13.5px;
-    font-weight: 500;
-    letter-spacing: 0.01em;
-    color: #303030;
-    text-transform: uppercase;
+    width: 144px;
+    height: 72px;
+    min-width: 90px;
+    min-height: 72px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                height 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
-  #logo span {
+  /* Desktop: compact → hover expands in X and Y */
+  #logo:hover {
+    width: 320px;
+    height: 140px;
+  }
+  .logo-row {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.08em;
+    width: 100%;
+    overflow: hidden;
+    flex: 0 0 24px;
+  }
+  .logo-row img {
+    width: 24px;
+    height: 24px;
+    display: block;
+    flex-shrink: 0;
+  }
+  .logo-row .logo-mid {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    overflow: hidden;
+    min-width: 0;
+    transition: flex 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .logo-row .logo-mid img {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
   }
 
-  /* ── CRISP wordmark / canvas area ── */
+  /* ── ARTBOARD ── */
+  #artboard {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(960px, calc(100% - 40px));
+    height: calc(100% - 40px);
+    max-height: 600px;
+    border: 1px solid var(--artboard-border);
+    border-radius: 24px;
+    overflow: hidden;
+    background: transparent;
+    transition: background 0.2s;
+  }
+  #artboard:hover:not(.has-file) {
+    background: #eeedea;
+  }
+
+  /* ── CANVAS AREA inside artboard ── */
   #canvas-wrap {
     position: relative;
-    width: 560px;
-    height: 300px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 100%;
+    height: 100%;
     transform-style: preserve-3d;
   }
 
@@ -94,190 +158,371 @@
     will-change: transform;
   }
 
-  /* ── LEFT SIDEBAR ── */
-  #sidebar {
+  /* ── BOTTOM LEFT BUTTONS ── */
+  #bottom-left {
     position: absolute;
     left: 40px;
-    bottom: 120px;
+    bottom: 24px;
+    right: 40px;
     display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .side-btn {
-    position: relative;
-    display: flex;
+    gap: 8px;
     align-items: center;
-    gap: 0;
   }
 
-  .icon-btn {
-    width: 72px; height: 72px;
-    border-radius: 50%;
+  .nav-btn {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
     background: var(--white);
+    border: 1px solid var(--border);
     box-shadow: var(--shadow);
-    border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
+    padding: 0;
     transition: background 0.15s, transform 0.1s;
+    flex-shrink: 0;
   }
-  .icon-btn:hover { background: #f0ede8; transform: scale(1.04); }
-  .icon-btn:active { transform: scale(0.97); }
+  .nav-btn:hover { background: var(--accent); border-color: var(--accent-border); }
+  .nav-btn:active { transform: scale(0.96); }
+  .nav-btn img, .nav-btn svg { width: 24px; height: 24px; }
 
-  .icon-btn svg { width: 28px; height: 28px; }
-
-  .side-label {
+  .nav-btn .nav-tooltip {
     position: absolute;
-    left: 84px;
-    background: var(--white);
-    box-shadow: var(--shadow);
-    border-radius: 4px;
-    padding: 10px 14px;
-    font-size: 12px;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100%);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--gray);
     white-space: nowrap;
-    color: var(--black);
-    pointer-events: none;
     opacity: 0;
-    transform: translateX(-6px);
+    pointer-events: none;
     transition: opacity 0.15s, transform 0.15s;
+    text-align: center;
   }
-
-  .side-btn:hover .side-label {
+  .nav-btn:hover .nav-tooltip {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateX(-50%) translateY(0);
   }
 
-  /* ── BOTTOM PANEL ── */
-  #panel {
+  /* ── BOTTOM CONTROLS ── */
+  #bottom-controls {
     position: absolute;
-    bottom: 48px;
+    bottom: 24px;
     left: 50%;
     transform: translateX(-50%);
-    width: 392px;
-    background: var(--white);
-    border-radius: 8px;
-    box-shadow: var(--shadow);
-    padding: 16px 16px 28px;
+    width: 560px;
     display: flex;
     flex-direction: column;
-    gap: 0;
+    gap: 7px;
+    align-items: stretch;
   }
 
-  /* mode toggle */
-  #mode-toggle {
+  /* Mode bar (top row) */
+  #mode-bar {
     display: flex;
-    gap: 0;
-    margin-bottom: 20px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    position: relative;
+    z-index: 2;
+  }
+
+  #mode-buttons {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    align-items: center;
   }
 
   .mode-btn {
-    flex: 1;
-    padding: 10px 12px;
-    font-family: var(--mono);
-    font-size: 14px;
-    border: none;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    width: 160px;
     cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-    border-radius: 4px;
-  }
-  .mode-btn.active {
-    background: var(--dark);
-    color: var(--white);
-  }
-  .mode-btn:not(.active) {
-    background: var(--white);
-    color: var(--black);
+    border: none;
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+    border-radius: 0;
   }
 
-  /* sliders */
+  .mode-btn .mode-icon {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 15px;
+    box-shadow: var(--shadow);
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  }
+  .mode-btn .mode-icon img {
+    width: 16px;
+    height: 16px;
+  }
+
+  .mode-btn .mode-label {
+    flex: 1;
+    height: 40px;
+    border-radius: 12px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 16px;
+    color: var(--dark);
+    white-space: nowrap;
+    box-shadow: var(--shadow);
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    position: relative;
+  }
+
+  /* Active state */
+  .mode-btn.active .mode-icon {
+    background: var(--accent);
+    border-color: var(--accent-border);
+  }
+  .mode-btn.active .mode-label {
+    background: var(--accent);
+    border-color: var(--accent-border);
+    color: #000;
+  }
+  .mode-btn.active .mode-icon,
+  .mode-btn.active .mode-label {
+    box-shadow: var(--shadow);
+  }
+
+  /* Hover for inactive — accent tint */
+  .mode-btn:not(.active):hover .mode-icon,
+  .mode-btn:not(.active):hover .mode-label {
+    background: var(--accent);
+    border-color: var(--accent-border);
+  }
+
+  /* Cookie btn (randomize) */
+  .cookie-btn {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 2px;
+    flex-shrink: 0;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .cookie-btn:hover { background: var(--accent); border-color: var(--accent-border); }
+  .cookie-btn:active { transform: scale(0.96); }
+  .cookie-btn img { width: 16px; height: 16px; }
+
+  .cookie-btn .cookie-tooltip {
+    position: absolute;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100%);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--gray);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s, transform 0.15s;
+    text-align: center;
+  }
+  .cookie-btn:hover .cookie-tooltip {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ── SLIDER PANEL ── */
+  #panel {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    padding: 40px 40px 64px;
+    position: relative;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
   .slider-group {
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    margin-top: 8px;
+    gap: 24px;
   }
 
   .slider-row {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 19px;
   }
 
   .slider-label {
     font-size: 12px;
     color: var(--gray);
     letter-spacing: 0.02em;
+    width: 100%;
+  }
+
+  .slider-track-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
   }
 
   .slider-track {
     position: relative;
-    height: 2px;
+    height: 6px;
     background: #e0ddd8;
-    border-radius: 1px;
+    border-radius: 3px;
     cursor: pointer;
+    width: 100%;
+    box-shadow: inset 0px 1px 2px rgba(0,0,0,0.25);
   }
 
   .slider-fill {
     position: absolute;
     left: 0; top: 0; height: 100%;
-    background: var(--dark);
-    border-radius: 1px;
+    background: var(--accent);
+    border-radius: 3px;
     pointer-events: none;
+    box-shadow: inset 0px 1px 2px rgba(0,0,0,0.25);
   }
 
   .slider-thumb {
     position: absolute;
     top: 50%;
     transform: translate(-50%, -50%);
-    width: 22px; height: 22px;
+    width: 16px; height: 16px;
     border-radius: 50%;
-    background: var(--white);
-    box-shadow: 0 1px 4px rgba(0,0,0,.2), 0 0 0 1.5px rgba(0,0,0,.08);
+    background: var(--dark);
     cursor: grab;
     transition: box-shadow 0.1s, transform 0.1s;
+    z-index: 2;
   }
   .slider-thumb:hover {
-    box-shadow: 0 2px 8px rgba(0,0,0,.25), 0 0 0 2px rgba(0,0,0,.12);
-    transform: translate(-50%, -50%) scale(1.1);
+    box-shadow: 0 0 0 4px rgba(0,0,0,0.08);
+    transform: translate(-50%, -50%) scale(1.15);
   }
   .slider-thumb:active { cursor: grabbing; transform: translate(-50%, -50%) scale(1.05); }
 
-  /* panels A / B */
   #panel-b { display: none; }
 
-  /* ── VERTICAL TEXT right ── */
-  .vert-text {
-    position: absolute;
-    right: 24px;
-    writing-mode: vertical-rl;
-    font-size: 10px;
-    letter-spacing: 0.06em;
-    color: var(--black);
-    white-space: nowrap;
-    user-select: none;
-  }
-  #vert-top { top: 50%; transform: translateY(-50%) rotate(180deg); }
-  #vert-bottom { bottom: 48px; transform: rotate(180deg); }
-  #vert-bottom a { color: inherit; text-decoration: underline; }
 
-  /* ── HINT ── */
-  #hint-text {
+  /* ── UPLOAD PROMPT (centered inside artboard) ── */
+  #upload-prompt {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, calc(-50% + 170px));
-    font-size: 11px;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    z-index: 10;
+    cursor: pointer;
+  }
+  #upload-prompt.hidden {
+    display: none;
+  }
+  .upload-prompt-btn {
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 2px;
+  }
+  .upload-prompt-btn img {
+    width: 24px;
+    height: 24px;
+    opacity: 0.35;
+  }
+  #upload-prompt-label {
+    font-family: var(--mono);
+    font-size: 12px;
     color: var(--gray);
-    letter-spacing: 0.04em;
-    pointer-events: none;
-    transition: opacity 0.3s;
+    text-align: center;
+    white-space: nowrap;
   }
 
-  /* canvas cursor */
-  #canvas-wrap { cursor: crosshair; }
+  /* ── COOKIE BTN DISABLED ── */
+  .cookie-btn.disabled {
+    opacity: 0.35;
+    cursor: default;
+    pointer-events: none;
+  }
+
+  /* ── CURSOR MODES ── */
+  #canvas-wrap.cursor-hammer { cursor: url('assets/Hamer.png') 8 24, crosshair; }
+  #canvas-wrap.cursor-knife  { cursor: url('assets/Knife.png') 8 24, crosshair; }
+  #canvas-wrap.cursor-hammer.hammer-hit { cursor: none; }
+
+  /* ── HAMMER HIT OVERLAY ── */
+  .hammer-hit-overlay {
+    position: fixed;
+    width: 32px;
+    height: 32px;
+    pointer-events: none;
+    z-index: 200;
+    transform-origin: 8px 24px;
+    transform: rotate(0deg);
+    transition: transform 0.1s cubic-bezier(0.2, 0, 0.3, 1);
+  }
+  .hammer-hit-overlay.down {
+    transform: rotate(-30deg);
+  }
+  .hammer-hit-overlay img {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ── LOGO WRAP (transparent on desktop) ── */
+  #logo-wrap {
+    display: contents;
+  }
+
+  /* ── RIGHT PANEL wrapper (transparent on desktop) ── */
+  #right-panel {
+    display: contents;
+  }
+
+  /* ── COPYRIGHT ── */
+  #copyright {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--gray);
+    text-align: left;
+    line-height: 1.5;
+    align-self: center;
+  }
 
   /* file input hidden */
   #fileInput { display: none; }
@@ -292,106 +537,346 @@
     font-size: 11px;
     color: var(--gray);
   }
+
+  /* ── RESPONSIVE: side-by-side layout ── */
+  /* ── RESPONSIVE: side-by-side ── */
+  @media (max-width: 1400px) {
+    #app {
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      justify-content: flex-start;
+      padding: 40px;
+      padding-bottom: 40px;
+      gap: 20px;
+    }
+
+    /* Logo wrap: takes available vertical space, centers logo inside */
+    #logo-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1 1 auto;
+      min-height: 72px;
+    }
+
+    /* Logo: fills wrap by default, contracts on hover */
+    #logo {
+      position: relative;
+      top: auto;
+      left: auto;
+      transform: none;
+      width: 100%;
+      height: 100%;
+      min-height: auto;
+      flex-shrink: 0;
+    }
+    /* Hover on WRAP contracts logo (wrap keeps stable size, no pulsing) */
+    #logo:hover {
+      width: 100%;
+      height: 100%;
+    }
+    #logo-wrap:hover #logo {
+      width: 90px;
+      height: 72px;
+    }
+
+    /* Artboard: fills left side */
+    #artboard {
+      position: relative;
+      top: auto;
+      left: auto;
+      transform: none;
+      width: auto;
+      height: auto;
+      flex: 1 1 0;
+      min-width: 0;
+    }
+
+    /* Right sidebar: 35% */
+    #right-panel {
+      display: flex !important;
+      flex-direction: column;
+      width: 35%;
+      min-width: 280px;
+      max-width: 420px;
+      flex-shrink: 0;
+      gap: 20px;
+      justify-content: flex-end;
+    }
+
+    /* Bottom controls */
+    #bottom-controls {
+      position: relative;
+      bottom: auto;
+      left: auto;
+      transform: none;
+      width: 100%;
+    }
+
+    /* Nav buttons */
+    #bottom-left {
+      position: relative;
+      left: auto;
+      bottom: auto;
+      right: auto;
+      justify-content: flex-start;
+    }
+
+    #mode-bar { align-items: stretch; gap: 8px; flex-wrap: nowrap; }
+    #mode-buttons { flex-direction: column; gap: 8px; flex: 1; min-width: 0; flex-wrap: nowrap; }
+    .mode-btn { width: 100%; min-width: 0; }
+    .cookie-btn { width: 88px; height: auto; min-height: 88px; flex-shrink: 0; }
+    .cookie-btn img { width: 24px; height: 24px; }
+    .cookie-btn .cookie-tooltip { display: none; }
+    .nav-btn .nav-tooltip { display: none; }
+
+    #panel { padding: 24px 24px 40px; }
+
+    /* Right panel — no clipping shadows */
+    #right-panel { overflow: visible; }
+
+    #copyright {
+      text-align: left;
+      margin-left: auto;
+    }
+  }
+
+  /* ── RESPONSIVE: vertical stack ── */
+  @media (max-width: 900px) {
+    #app {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 40px;
+      gap: 20px;
+      overflow-y: auto;
+    }
+
+    /* Logo wrap: fixed bar at top, stable hover target */
+    #logo-wrap {
+      position: fixed;
+      top: 16px;
+      left: 40px;
+      right: 40px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 72px;
+    }
+
+    /* Logo: fills wrap, contracts on wrap hover */
+    #logo {
+      position: relative;
+      top: auto;
+      left: auto;
+      transform: none;
+      width: 100%;
+      height: 100%;
+      min-height: auto;
+      min-width: auto;
+      flex-shrink: 0;
+      transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                  height 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    #logo:hover {
+      width: 100%;
+      height: 100%;
+    }
+    #logo-wrap:hover #logo {
+      width: 90px;
+      height: 72px;
+    }
+
+    /* Push content down so logo doesn't overlap artboard */
+    #app {
+      padding-top: 100px;
+    }
+
+    #artboard {
+      position: relative;
+      top: auto;
+      left: auto;
+      transform: none;
+      width: 100%;
+      height: auto;
+      min-height: 300px;
+      aspect-ratio: 960 / 600;
+      flex-shrink: 0;
+    }
+
+    #right-panel {
+      display: flex !important;
+      flex-direction: column;
+      width: 100%;
+      max-width: none;
+      min-width: 0;
+      gap: 12px;
+      justify-content: flex-start;
+    }
+
+    #bottom-controls {
+      position: relative;
+      bottom: auto;
+      left: auto;
+      transform: none;
+      width: 100%;
+    }
+
+    #bottom-left {
+      position: relative;
+      left: auto;
+      bottom: auto;
+      justify-content: flex-start;
+    }
+
+    #mode-bar { align-items: stretch; gap: 8px; flex-wrap: nowrap; }
+    #mode-buttons { flex-direction: column; gap: 8px; flex: 1; min-width: 0; flex-wrap: nowrap; }
+    .mode-btn { width: 100%; min-width: 0; }
+    .cookie-btn { width: 88px; height: auto; min-height: 88px; flex-shrink: 0; }
+    .cookie-btn img { width: 24px; height: 24px; }
+
+    #panel { padding: 24px 24px 40px; }
+  }
 </style>
 </head>
 <body>
 <div id="app">
 
-  <!-- KHOREI logo -->
-  <div id="logo">
-    <span>K</span><span>H</span><span>O</span>
-    <span>R</span><span>E</span><span>I</span>
-    <span>L</span><span>A</span><span>B</span>
-  </div>
-
-  <!-- Canvas area -->
-  <div id="canvas-wrap">
-    <svg id="outputSvg" xmlns="http://www.w3.org/2000/svg"></svg>
-    <svg id="previewSvg" xmlns="http://www.w3.org/2000/svg"></svg>
-  </div>
-
-  <div id="hint-text">Wgraj plik *.svg</div>
-
-  <!-- LEFT SIDEBAR -->
-  <div id="sidebar">
-    <div class="side-btn">
-      <button class="icon-btn" id="uploadBtn" title="Dodaj plik">
-        <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M14 4v14M8 10l6-6 6 6M5 22h18" stroke="#1a1a1a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+  <!-- Artboard -->
+  <div id="artboard">
+    <div id="canvas-wrap" class="cursor-hammer">
+      <svg id="outputSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+      <svg id="previewSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+    <!-- Upload prompt inside artboard -->
+    <div id="upload-prompt">
+      <button class="upload-prompt-btn" id="uploadBtnCenter" title="Upload file">
+        <img src="assets/upload_file.svg" alt="Upload">
       </button>
-      <span class="side-label">Dodaj plik *.svg</span>
-    </div>
-    <div class="side-btn">
-      <button class="icon-btn" id="downloadBtn" title="Pobierz">
-        <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M14 4v14M8 18l6 6 6-6M5 24h18" stroke="#1a1a1a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <span class="side-label">Pobierz plik</span>
-    </div>
-    <div class="side-btn">
-      <button class="icon-btn" id="resetBtn" title="Reset">
-        <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M5 14a9 9 0 1 0 2.1-5.8M5 5v5h5" stroke="#1a1a1a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <span class="side-label">Reset</span>
+      <span id="upload-prompt-label">Upload an *.svg file</span>
     </div>
   </div>
 
-  <!-- BOTTOM PANEL -->
-  <div id="panel">
-    <div id="mode-toggle">
-      <button class="mode-btn active" id="btnA">A (Rozbicie)</button>
-      <button class="mode-btn" id="btnB">B (Łamanie)</button>
+  <!-- RIGHT PANEL (used in responsive layout) -->
+  <div id="right-panel">
+
+  <!-- KHOREI LOGO -->
+  <div id="logo-wrap">
+  <a id="logo" href="https://khorei.com" target="_blank" rel="noopener">
+    <div class="logo-row">
+      <img src="assets/khorei_logo/K.svg" alt="K">
+      <div class="logo-mid"><img src="assets/khorei_logo/H.svg" alt="H"></div>
+      <img src="assets/khorei_logo/O.svg" alt="O">
+    </div>
+    <div class="logo-row">
+      <img src="assets/khorei_logo/R.svg" alt="R">
+      <div class="logo-mid"><img src="assets/khorei_logo/E.svg" alt="E"></div>
+      <img src="assets/khorei_logo/I.svg" alt="I">
+    </div>
+    <div class="logo-row">
+      <img src="assets/khorei_logo/L.svg" alt="L">
+      <div class="logo-mid"><img src="assets/khorei_logo/A.svg" alt="A"></div>
+      <img src="assets/khorei_logo/B.svg" alt="B">
+    </div>
+  </a>
+  </div><!-- /logo-wrap -->
+
+  <!-- BOTTOM CONTROLS -->
+  <div id="bottom-controls">
+    <!-- Mode bar -->
+    <div id="mode-bar">
+      <div id="mode-buttons">
+        <button class="mode-btn active" id="btnA">
+          <div class="mode-icon"><img src="assets/Hamer.png" alt="Hammer"></div>
+          <div class="mode-label">Crush it</div>
+        </button>
+        <button class="mode-btn" id="btnB">
+          <div class="mode-icon"><img src="assets/Knife.png" alt="Knife"></div>
+          <div class="mode-label">Slice it</div>
+        </button>
+      </div>
+      <button class="cookie-btn" id="randomBtn" title="Randomize">
+        <img src="assets/Crisp.png" alt="Crisp">
+        <span class="cookie-tooltip">Randomize</span>
+      </button>
     </div>
 
-    <!-- Panel A -->
-    <div id="panel-a" class="slider-group">
-      <div class="slider-row">
-        <span class="slider-label">Siła</span>
-        <div class="slider-track" id="trackPowerA">
-          <div class="slider-fill" id="fillPowerA" style="width:30%"></div>
-          <div class="slider-thumb" id="thumbPowerA" style="left:30%"></div>
+    <!-- Slider panel -->
+    <div id="panel">
+      <!-- Panel A -->
+      <div id="panel-a" class="slider-group">
+        <div class="slider-row">
+          <span class="slider-label">Power</span>
+          <div class="slider-track-wrap">
+            <div class="slider-track" id="trackPowerA">
+              <div class="slider-fill" id="fillPowerA" style="width:30%"></div>
+              <div class="slider-thumb" id="thumbPowerA" style="left:30%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">Crumbs</span>
+          <div class="slider-track-wrap">
+            <div class="slider-track" id="trackCrisp">
+              <div class="slider-fill" id="fillCrisp" style="width:50%"></div>
+              <div class="slider-thumb" id="thumbCrisp" style="left:50%"></div>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="slider-row">
-        <span class="slider-label">Okruszki</span>
-        <div class="slider-track" id="trackCrisp">
-          <div class="slider-fill" id="fillCrisp" style="width:50%"></div>
-          <div class="slider-thumb" id="thumbCrisp" style="left:50%"></div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Panel B -->
-    <div id="panel-b" class="slider-group">
-      <div class="slider-row">
-        <span class="slider-label">Siła rozsunięcia</span>
-        <div class="slider-track" id="trackPowerB">
-          <div class="slider-fill" id="fillPowerB" style="width:35%"></div>
-          <div class="slider-thumb" id="thumbPowerB" style="left:35%"></div>
+      <!-- Panel B -->
+      <div id="panel-b" class="slider-group">
+        <div class="slider-row">
+          <span class="slider-label">Split force</span>
+          <div class="slider-track-wrap">
+            <div class="slider-track" id="trackPowerB">
+              <div class="slider-fill" id="fillPowerB" style="width:35%"></div>
+              <div class="slider-thumb" id="thumbPowerB" style="left:35%"></div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="slider-row">
-        <span class="slider-label">Nieregularność</span>
-        <div class="slider-track" id="trackJagged">
-          <div class="slider-fill" id="fillJagged" style="width:45%"></div>
-          <div class="slider-thumb" id="thumbJagged" style="left:45%"></div>
+        <div class="slider-row">
+          <span class="slider-label">Roughness</span>
+          <div class="slider-track-wrap">
+            <div class="slider-track" id="trackJagged">
+              <div class="slider-fill" id="fillJagged" style="width:45%"></div>
+              <div class="slider-thumb" id="thumbJagged" style="left:45%"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Vertical texts -->
-  <div class="vert-text" id="vert-top">KHOREI &nbsp; © &nbsp; 2026</div>
-  <div class="vert-text" id="vert-bottom">Designed &amp; Created by: Radosław Prośniak &amp; <a href="https://khorei.com" target="_blank">Khorei</a></div>
+  <!-- BOTTOM LEFT BUTTONS -->
+  <div id="bottom-left">
+    <button class="nav-btn" id="uploadBtn" title="Upload file">
+      <img src="assets/upload_file.svg" alt="Upload">
+      <span class="nav-tooltip">Upload *.svg</span>
+    </button>
+    <button class="nav-btn" id="resetBtn" title="Reset">
+      <img src="assets/reset_image.svg" alt="Reset">
+      <span class="nav-tooltip">Reset</span>
+    </button>
+    <button class="nav-btn" id="downloadBtn" title="Download">
+      <img src="assets/arrow_circle_down.svg" alt="Download">
+      <span class="nav-tooltip">Download</span>
+    </button>
+    <div id="copyright">
+      Make it Crisp! — A&nbsp;destructive SVG&nbsp;tool<br>
+      © <span id="copy-year"></span> Khorei
+    </div>
+  </div>
+
+  </div><!-- /right-panel -->
 
   <input type="file" accept=".svg" id="fileInput">
 </div>
 
 <script>
+document.getElementById('copy-year').textContent = new Date().getFullYear();
 // ── SLIDER LOGIC ──
 function makeSlider(trackEl, thumbEl, fillEl, initial, onChange) {
   let val = initial;
@@ -457,7 +942,11 @@ let colorImageData = null;
 const canvasWrap = document.getElementById('canvas-wrap');
 const outputSvg = document.getElementById('outputSvg');
 const previewSvg = document.getElementById('previewSvg');
-const hintText = document.getElementById('hint-text');
+const uploadPrompt = document.getElementById('upload-prompt');
+const randomBtn = document.getElementById('randomBtn');
+
+// Start with randomizer disabled
+randomBtn.classList.add('disabled');
 
 // ── COLOR SAMPLING ──
 function prepareColorSampling() {
@@ -494,7 +983,6 @@ function sampleColor(x, y) {
   const h = colorImageData.height;
   const px = Math.round(Math.max(0, Math.min(w - 1, x)));
   const py = Math.round(Math.max(0, Math.min(h - 1, y)));
-  // Sample a small area around the point for a more stable color
   let rSum = 0, gSum = 0, bSum = 0, count = 0;
   for (let dy = -2; dy <= 2; dy++) {
     for (let dx = -2; dx <= 2; dx++) {
@@ -535,12 +1023,19 @@ function setMode(m) {
   document.getElementById('btnB').classList.toggle('active', m === 'B');
   document.getElementById('panel-a').style.display = m === 'A' ? 'flex' : 'none';
   document.getElementById('panel-b').style.display = m === 'B' ? 'flex' : 'none';
-  canvasWrap.style.cursor = 'crosshair';
+
+  // Cursor swap
+  canvasWrap.classList.toggle('cursor-hammer', m === 'A');
+  canvasWrap.classList.toggle('cursor-knife', m === 'B');
+
   if (originalSvgContent) resetState();
 }
 
 // ── FILE UPLOAD ──
 document.getElementById('uploadBtn').addEventListener('click', () => {
+  document.getElementById('fileInput').click();
+});
+document.getElementById('upload-prompt').addEventListener('click', () => {
   document.getElementById('fileInput').click();
 });
 
@@ -564,7 +1059,9 @@ document.getElementById('fileInput').addEventListener('change', e => {
     }
     await prepareColorSampling();
     resetState();
-    hintText.style.opacity = '0';
+    uploadPrompt.classList.add('hidden');
+    document.getElementById('artboard').classList.add('has-file');
+    randomBtn.classList.remove('disabled');
   };
   reader.readAsText(file);
   e.target.value = '';
@@ -599,7 +1096,6 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
   if (particles.length === 0) {
     str = new XMLSerializer().serializeToString(outputSvg);
   } else {
-    // Build SVG from current particle state (2D projection, no 3D)
     const ns = 'http://www.w3.org/2000/svg';
     const cW = canvasWrap.clientWidth, cH = canvasWrap.clientHeight;
     const svg = document.createElementNS(ns, 'svg');
@@ -627,9 +1123,26 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
   URL.revokeObjectURL(url);
 });
 
+// ── RANDOM (cookie) ──
+document.getElementById('randomBtn').addEventListener('click', () => {
+  if (!originalSvgContent) return;
+  // Random click somewhere on the SVG
+  const rx = rand(svgW * 0.15, svgW * 0.85);
+  const ry = rand(svgH * 0.15, svgH * 0.85);
+  if (mode === 'A') {
+    triggerModeA(rx, ry);
+  } else {
+    const scale = getScale();
+    const { offX, offY } = getOff(scale);
+    const sA = { x: offX + rand(0, svgW * 0.3) * scale, y: offY + rand(0, svgH) * scale };
+    const sB = { x: offX + rand(svgW * 0.7, svgW) * scale, y: offY + rand(0, svgH) * scale };
+    triggerModeB(sA, sB);
+  }
+});
+
 // ── RENDER ──
 function getScale() {
-  return Math.min(canvasWrap.clientWidth / svgW, canvasWrap.clientHeight / svgH) * 0.88;
+  return Math.min(canvasWrap.clientWidth / svgW, canvasWrap.clientHeight / svgH) * 0.60;
 }
 function getOff(s) {
   return {
@@ -655,10 +1168,27 @@ function renderOriginal() {
   outputSvg.appendChild(g);
 }
 
+// ── RESIZE: re-center SVG on window resize ──
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  if (!originalSvgContent) return;
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    if (voronoiPointsA.length > 0 && mode === 'A') {
+      buildAndRender(voronoiPointsA);
+    } else if (allBreakPts.length > 0 && mode === 'B') {
+      buildAndRender(allBreakPts);
+    } else {
+      renderOriginal();
+    }
+  }, 100);
+});
+
 // ── EVENTS on canvas ──
 canvasWrap.addEventListener('mousedown', e => {
   if (!originalSvgContent || mode !== 'B') return;
-  if (e.target.closest('#panel') || e.target.closest('#sidebar')) return;
+  if (e.target.closest('#panel') || e.target.closest('#bottom-left')) return;
   isDragging = true;
   dragStart = canvasPos(e); dragEnd = canvasPos(e);
   previewSvg.style.display = 'block'; previewSvg.innerHTML = '';
@@ -687,6 +1217,45 @@ canvasWrap.addEventListener('click', e => {
   triggerModeA((pos.x - offX) / scale, (pos.y - offY) / scale);
 });
 
+// ── HAMMER HIT (mousedown/mouseup) ──
+let hammerOverlay = null;
+
+function createHammerOverlay() {
+  const el = document.createElement('div');
+  el.className = 'hammer-hit-overlay';
+  const img = document.createElement('img');
+  img.src = 'assets/Hamer.png';
+  el.appendChild(img);
+  document.body.appendChild(el);
+  return el;
+}
+
+canvasWrap.addEventListener('mousedown', e => {
+  if (!originalSvgContent || mode !== 'A') return;
+  canvasWrap.classList.add('hammer-hit');
+  hammerOverlay = createHammerOverlay();
+  hammerOverlay.style.left = (e.clientX - 8) + 'px';
+  hammerOverlay.style.top = (e.clientY - 24) + 'px';
+  requestAnimationFrame(() => hammerOverlay.classList.add('down'));
+});
+
+window.addEventListener('mousemove', e => {
+  if (hammerOverlay) {
+    hammerOverlay.style.left = (e.clientX - 8) + 'px';
+    hammerOverlay.style.top = (e.clientY - 24) + 'px';
+  }
+});
+
+window.addEventListener('mouseup', () => {
+  if (hammerOverlay) {
+    hammerOverlay.classList.remove('down');
+    setTimeout(() => {
+      if (hammerOverlay) { hammerOverlay.remove(); hammerOverlay = null; }
+      canvasWrap.classList.remove('hammer-hit');
+    }, 100);
+  }
+});
+
 function canvasPos(e) {
   const r = canvasWrap.getBoundingClientRect();
   return { x: e.clientX - r.left, y: e.clientY - r.top };
@@ -698,9 +1267,10 @@ function drawPreview(a, b) {
   const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
   line.setAttribute('x1', a.x - (dx / len) * 2000); line.setAttribute('y1', a.y - (dy / len) * 2000);
   line.setAttribute('x2', a.x + (dx / len) * 2000); line.setAttribute('y2', a.y + (dy / len) * 2000);
-  line.setAttribute('stroke', 'rgba(0,0,0,0.15)');
+  line.setAttribute('stroke', '#e87040');
   line.setAttribute('stroke-width', '1');
-  line.setAttribute('stroke-dasharray', '4 5');
+  line.setAttribute('stroke-dasharray', '6 6');
+  line.setAttribute('opacity', '0.7');
   previewSvg.appendChild(line);
   const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
   dot.setAttribute('cx', b.x); dot.setAttribute('cy', b.y);
@@ -771,7 +1341,6 @@ function buildAndRender(vpts) {
     div.style.transformOrigin = scx + 'px ' + scy + 'px';
 
     if (isCrumb) {
-      // Task 3: random jagged polygon crumb
       const color = sampleColor(hcx, hcy);
       const crumbSize = rand(2, 7) * scale;
       const numVerts = Math.floor(rand(5, 9));
@@ -790,7 +1359,6 @@ function buildAndRender(vpts) {
       svg.appendChild(polygon);
       div.appendChild(svg);
     } else {
-      // Regular fragment with clipPath
       const svg = document.createElementNS(ns, 'svg');
       svg.setAttribute('width', cW);
       svg.setAttribute('height', cH);
@@ -845,7 +1413,7 @@ function applyTransforms() {
 // ── MODE A ──
 function triggerModeA(clickX, clickY) {
   if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-  const power = mapVal(sliderPowerA.get(), 0.05, 20);
+  const power = mapVal(sliderPowerA.get(), 0.001, 20);
   const crisp = mapVal(sliderCrisp.get(), 1, 10);
 
   const bigCount = 2 + Math.floor(crisp * 0.3);
@@ -861,8 +1429,8 @@ function triggerModeA(clickX, clickY) {
   buildAndRender(voronoiPointsA);
   const scale = getScale(); const { offX, offY } = getOff(scale);
   const fromSX = offX + clickX * scale, fromSY = offY + clickY * scale;
-  const maxSpeed = 0.05 + (power / 20) * 2.5;
-  const maxAngle = mapVal(sliderPowerA.get(), 8, 38);
+  const maxSpeed = 0.002 + (power / 20) * 2.5;
+  const maxAngle = mapVal(sliderPowerA.get(), 0.5, 38);
 
   particles.forEach(p => {
     const dx = p.screenCx - fromSX, dy = p.screenCy - fromSY, dist = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -872,7 +1440,6 @@ function triggerModeA(clickX, clickY) {
     p.vy = (dy / dist) * speed + rand(-1, 1) * speed * 0.3;
     p.vr = rand(-1, 1) * (isSmall ? 0.8 : 0.2);
 
-    // 3D rotation — direction away from click, proportional to power
     const angle = Math.atan2(dy, dx);
     const rotAmount = isSmall ? maxAngle * rand(0.6, 1.0) : maxAngle * rand(0.3, 0.8);
     p.targetRy = Math.cos(angle) * rotAmount;
@@ -938,11 +1505,9 @@ function triggerModeB(sA, sB) {
 
   buildAndRender(allBreakPts);
 
-  // Break axis vector in SVG coords
   const breakDx = bx - ax, breakDy = by - ay;
   const breakLen = Math.sqrt(breakDx * breakDx + breakDy * breakDy) || 1;
 
-  // Find max distance from break axis for normalization
   let maxDist = 0;
   particles.forEach(p => {
     const d = Math.abs((p.cx - ax) * breakDy - (p.cy - ay) * breakDx) / breakLen;
@@ -956,18 +1521,14 @@ function triggerModeB(sA, sB) {
     const dx = p.cx - cx, dy = p.cy - cy;
     const sign = (dx * perpX + dy * perpY) >= 0 ? 1 : -1;
 
-    // Lateral separation (existing behavior)
     p.vx = perpX * sign * power * rand(0.85, 1.15);
     p.vy = perpY * sign * power * rand(0.85, 1.15);
     p.vr = rand(-1, 1) * 0.006 * (jagged / 10);
 
-    // Task 2: Board-breaking rotateX — distance from axis → droop
     const dist = Math.abs((p.cx - ax) * breakDy - (p.cy - ay) * breakDx) / breakLen;
     const normalizedDist = maxDist > 0 ? dist / maxDist : 0;
-    // Quadratic falloff for more natural board-breaking feel
     const droopAmount = normalizedDist * normalizedDist * maxAngle * rand(0.8, 1.0);
     p.targetRx = droopAmount;
-    // Slight lateral tilt based on side
     p.targetRy = sign * normalizedDist * 8 * rand(0.5, 1.0);
   });
   animate();
@@ -983,7 +1544,6 @@ function animate() {
     p.vx *= friction; p.vy *= friction; p.vr *= 0.92;
     p.px += p.vx; p.py += p.vy; p.rot += p.vr;
 
-    // Lerp 3D rotation toward targets
     p.rx += (p.targetRx - p.rx) * 0.07;
     p.ry += (p.targetRy - p.ry) * 0.07;
 
