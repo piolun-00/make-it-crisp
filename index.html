@@ -661,17 +661,18 @@
       overflow-y: auto;
     }
 
-    /* Logo wrap: fixed bar at top, stable hover target */
+    /* Logo wrap: scrolls with content */
     #logo-wrap {
-      position: fixed;
-      top: 14px;
-      left: 14px;
-      right: 14px;
+      position: relative;
+      top: auto;
+      left: auto;
+      right: auto;
       z-index: 20;
       display: flex;
       align-items: center;
       justify-content: center;
       height: 72px;
+      flex-shrink: 0;
     }
 
     /* Logo: fills wrap, contracts on wrap hover */
