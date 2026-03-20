@@ -717,16 +717,6 @@
       overflow: visible;
     }
 
-    #right-panel {
-      display: flex !important;
-      flex-direction: column;
-      width: 100%;
-      max-width: none;
-      min-width: 0;
-      gap: 12px;
-      justify-content: flex-start;
-    }
-
     #bottom-controls {
       position: relative;
       bottom: auto;
@@ -909,6 +899,9 @@ function makeSlider(trackEl, thumbEl, fillEl, initial, onChange) {
   trackEl.addEventListener('mousedown', e => { dragging = true; update(e.clientX); e.preventDefault(); });
   window.addEventListener('mousemove', e => { if (dragging) update(e.clientX); });
   window.addEventListener('mouseup', () => { dragging = false; });
+  trackEl.addEventListener('touchstart', e => { dragging = true; update(e.touches[0].clientX); e.preventDefault(); }, { passive: false });
+  window.addEventListener('touchmove', e => { if (dragging) update(e.touches[0].clientX); });
+  window.addEventListener('touchend', () => { dragging = false; });
 
   return { get: () => val };
 }
