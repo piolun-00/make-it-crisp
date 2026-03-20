@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRISP — Khorei</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fragment+Mono&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f8f6f3;
+    --white: #ffffff;
+    --black: #1a1a1a;
+    --dark: #292929;
+    --gray: #bababa;
+    --shadow: 0px 3px 6px rgba(0,0,0,.10), 0px 10px 10px rgba(0,0,0,.09), 0px 23px 14px rgba(0,0,0,.05), 0px 41px 16px rgba(0,0,0,.01), 0px 64px 18px rgba(0,0,0,0);
+    --mono: 'Fragment Mono', monospace;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    font-family: var(--mono);
+    overflow: hidden;
+    color: var(--black);
+  }
+
+  /* ── LAYOUT ── */
+  #app {
+    position: relative;
+    width: 100vw; height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ── KHOREI LOGO top center ── */
+  #logo {
+    position: absolute;
+    top: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: grid;
+    grid-template-columns: repeat(3, 24px);
+    grid-template-rows: repeat(3, 24px);
+    gap: 0;
+    font-family: 'FK Grotesk', var(--mono);
+    font-size: 13.5px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: #303030;
+    text-transform: uppercase;
+  }
+  #logo span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+  }
+
+  /* ── CRISP wordmark / canvas area ── */
+  #canvas-wrap {
+    position: relative;
+    width: 560px;
+    height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #outputSvg {
+    position: absolute;
+    top: 0; left: 0;
+  }
+  #previewSvg {
+    position: absolute;
+    top: 0; left: 0;
+    pointer-events: none;
+    display: none;
+  }
+
+  /* ── LEFT SIDEBAR ── */
+  #sidebar {
+    position: absolute;
+    left: 40px;
+    bottom: 120px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .side-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  .icon-btn {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: var(--white);
+    box-shadow: var(--shadow);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .icon-btn:hover { background: #f0ede8; transform: scale(1.04); }
+  .icon-btn:active { transform: scale(0.97); }
+
+  .icon-btn svg { width: 28px; height: 28px; }
+
+  .side-label {
+    position: absolute;
+    left: 84px;
+    background: var(--white);
+    box-shadow: var(--shadow);
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-size: 12px;
+    white-space: nowrap;
+    color: var(--black);
+    pointer-events: none;
+    opacity: 0;
+    transform: translateX(-6px);
+    transition: opacity 0.15s, transform 0.15s;
+  }
+
+  .side-btn:hover .side-label {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  /* ── BOTTOM PANEL ── */
+  #panel {
+    position: absolute;
+    bottom: 48px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 392px;
+    background: var(--white);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    padding: 16px 16px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* mode toggle */
+  #mode-toggle {
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+  }
+
+  .mode-btn {
+    flex: 1;
+    padding: 10px 12px;
+    font-family: var(--mono);
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    border-radius: 4px;
+  }
+  .mode-btn.active {
+    background: var(--dark);
+    color: var(--white);
+  }
+  .mode-btn:not(.active) {
+    background: var(--white);
+    color: var(--black);
+  }
+
+  /* sliders */
+  .slider-group {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 8px;
+  }
+
+  .slider-row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .slider-label {
+    font-size: 12px;
+    color: var(--gray);
+    letter-spacing: 0.02em;
+  }
+
+  .slider-track {
+    position: relative;
+    height: 2px;
+    background: #e0ddd8;
+    border-radius: 1px;
+    cursor: pointer;
+  }
+
+  .slider-fill {
+    position: absolute;
+    left: 0; top: 0; height: 100%;
+    background: var(--dark);
+    border-radius: 1px;
+    pointer-events: none;
+  }
+
+  .slider-thumb {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--white);
+    box-shadow: 0 1px 4px rgba(0,0,0,.2), 0 0 0 1.5px rgba(0,0,0,.08);
+    cursor: grab;
+    transition: box-shadow 0.1s, transform 0.1s;
+  }
+  .slider-thumb:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,.25), 0 0 0 2px rgba(0,0,0,.12);
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+  .slider-thumb:active { cursor: grabbing; transform: translate(-50%, -50%) scale(1.05); }
+
+  /* panels A / B */
+  #panel-b { display: none; }
+
+  /* ── VERTICAL TEXT right ── */
+  .vert-text {
+    position: absolute;
+    right: 24px;
+    writing-mode: vertical-rl;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    color: var(--black);
+    white-space: nowrap;
+    user-select: none;
+  }
+  #vert-top { top: 50%; transform: translateY(-50%) rotate(180deg); }
+  #vert-bottom { bottom: 48px; transform: rotate(180deg); }
+  #vert-bottom a { color: inherit; text-decoration: underline; }
+
+  /* ── HINT ── */
+  #hint-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, calc(-50% + 170px));
+    font-size: 11px;
+    color: var(--gray);
+    letter-spacing: 0.04em;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  /* canvas cursor */
+  #canvas-wrap { cursor: crosshair; }
+
+  /* file input hidden */
+  #fileInput { display: none; }
+
+  /* ── DRAG HINT for mode B ── */
+  #drag-hint {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, calc(-50% + 170px));
+    font-size: 11px;
+    color: var(--gray);
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- KHOREI logo -->
+  <div id="logo">
+    <span>K</span><span>H</span><span>O</span>
+    <span>R</span><span>E</span><span>I</span>
+    <span>L</span><span>A</span><span>B</span>
+  </div>
+
+  <!-- Canvas area -->
+  <div id="canvas-wrap">
+    <svg id="outputSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+    <svg id="previewSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+
+  <div id="hint-text">Wgraj plik *.svg</div>
+
+  <!-- LEFT SIDEBAR -->
+  <div id="sidebar">
+    <div class="side-btn">
+      <button class="icon-btn" id="uploadBtn" title="Dodaj plik">
+        <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 4v14M8 10l6-6 6 6M5 22h18" stroke="#1a1a1a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <span class="side-label">Dodaj plik *.svg</span>
+    </div>
+    <div class="side-btn">
+      <button class="icon-btn" id="downloadBtn" title="Pobierz">
+        <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 4v14M8 18l6 6 6-6M5 24h18" stroke="#1a1a1a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <span class="side-label">Pobierz plik</span>
+    </div>
+    <div class="side-btn">
+      <button class="icon-btn" id="resetBtn" title="Reset">
+        <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M5 14a9 9 0 1 0 2.1-5.8M5 5v5h5" stroke="#1a1a1a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <span class="side-label">Reset</span>
+    </div>
+  </div>
+
+  <!-- BOTTOM PANEL -->
+  <div id="panel">
+    <div id="mode-toggle">
+      <button class="mode-btn active" id="btnA">A (Rozbicie)</button>
+      <button class="mode-btn" id="btnB">B (Łamanie)</button>
+    </div>
+
+    <!-- Panel A -->
+    <div id="panel-a" class="slider-group">
+      <div class="slider-row">
+        <span class="slider-label">Siła</span>
+        <div class="slider-track" id="trackPowerA">
+          <div class="slider-fill" id="fillPowerA" style="width:30%"></div>
+          <div class="slider-thumb" id="thumbPowerA" style="left:30%"></div>
+        </div>
+      </div>
+      <div class="slider-row">
+        <span class="slider-label">Okruszki</span>
+        <div class="slider-track" id="trackCrisp">
+          <div class="slider-fill" id="fillCrisp" style="width:50%"></div>
+          <div class="slider-thumb" id="thumbCrisp" style="left:50%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel B -->
+    <div id="panel-b" class="slider-group">
+      <div class="slider-row">
+        <span class="slider-label">Siła rozsunięcia</span>
+        <div class="slider-track" id="trackPowerB">
+          <div class="slider-fill" id="fillPowerB" style="width:35%"></div>
+          <div class="slider-thumb" id="thumbPowerB" style="left:35%"></div>
+        </div>
+      </div>
+      <div class="slider-row">
+        <span class="slider-label">Nieregularność</span>
+        <div class="slider-track" id="trackJagged">
+          <div class="slider-fill" id="fillJagged" style="width:45%"></div>
+          <div class="slider-thumb" id="thumbJagged" style="left:45%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vertical texts -->
+  <div class="vert-text" id="vert-top">KHOREI &nbsp; © &nbsp; 2026</div>
+  <div class="vert-text" id="vert-bottom">Designed &amp; Created by: Radosław Prośniak &amp; <a href="https://khorei.com" target="_blank">Khorei</a></div>
+
+  <input type="file" accept=".svg" id="fileInput">
+</div>
+
+<script>
+// ── SLIDER LOGIC ──
+function makeSlider(trackEl, thumbEl, fillEl, initial, onChange) {
+  let val = initial;
+  let dragging = false;
+
+  function update(clientX) {
+    const rect = trackEl.getBoundingClientRect();
+    let p = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    val = p;
+    thumbEl.style.left = (p * 100) + '%';
+    fillEl.style.width = (p * 100) + '%';
+    onChange(p);
+  }
+
+  trackEl.addEventListener('mousedown', e => { dragging = true; update(e.clientX); e.preventDefault(); });
+  window.addEventListener('mousemove', e => { if (dragging) update(e.clientX); });
+  window.addEventListener('mouseup', () => { dragging = false; });
+
+  return { get: () => val };
+}
+
+const sliderPowerA = makeSlider(
+  document.getElementById('trackPowerA'),
+  document.getElementById('thumbPowerA'),
+  document.getElementById('fillPowerA'),
+  0.30, () => {}
+);
+const sliderCrisp = makeSlider(
+  document.getElementById('trackCrisp'),
+  document.getElementById('thumbCrisp'),
+  document.getElementById('fillCrisp'),
+  0.50, () => {}
+);
+const sliderPowerB = makeSlider(
+  document.getElementById('trackPowerB'),
+  document.getElementById('thumbPowerB'),
+  document.getElementById('fillPowerB'),
+  0.35, () => {}
+);
+const sliderJagged = makeSlider(
+  document.getElementById('trackJagged'),
+  document.getElementById('thumbJagged'),
+  document.getElementById('fillJagged'),
+  0.45, () => {}
+);
+
+// helpers: map 0..1 to range
+const map = (v, min, max) => min + v * (max - min);
+
+// ── STATE ──
+let originalSvgContent = null;
+let svgW = 400, svgH = 400;
+let particles = [];
+let rafId = null;
+let mode = 'A';
+let voronoiPointsA = [];
+let allBreakPts = [];
+let allBreakMeta = [];
+let isDragging = false;
+let dragStart = null, dragEnd = null;
+
+const canvasWrap = document.getElementById('canvas-wrap');
+const outputSvg = document.getElementById('outputSvg');
+const previewSvg = document.getElementById('previewSvg');
+const hintText = document.getElementById('hint-text');
+
+// ── MODE TOGGLE ──
+document.getElementById('btnA').addEventListener('click', () => setMode('A'));
+document.getElementById('btnB').addEventListener('click', () => setMode('B'));
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('btnA').classList.toggle('active', m === 'A');
+  document.getElementById('btnB').classList.toggle('active', m === 'B');
+  document.getElementById('panel-a').style.display = m === 'A' ? 'flex' : 'none';
+  document.getElementById('panel-b').style.display = m === 'B' ? 'flex' : 'none';
+  canvasWrap.style.cursor = m === 'B' ? 'crosshair' : 'crosshair';
+  if (originalSvgContent) resetState();
+}
+
+// ── FILE UPLOAD ──
+document.getElementById('uploadBtn').addEventListener('click', () => {
+  document.getElementById('fileInput').click();
+});
+
+document.getElementById('fileInput').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    originalSvgContent = ev.target.result;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(originalSvgContent, 'image/svg+xml');
+    const svgEl = doc.querySelector('svg');
+    const vb = svgEl.getAttribute('viewBox');
+    if (vb) {
+      const p = vb.trim().split(/[\s,]+/);
+      svgW = parseFloat(p[2]) || 400;
+      svgH = parseFloat(p[3]) || 400;
+    } else {
+      svgW = parseFloat(svgEl.getAttribute('width')) || 400;
+      svgH = parseFloat(svgEl.getAttribute('height')) || 400;
+    }
+    resetState();
+    hintText.style.opacity = '0';
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+// ── RESET ──
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (originalSvgContent) resetState();
+});
+
+function resetState() {
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  particles = []; voronoiPointsA = []; allBreakPts = []; allBreakMeta = [];
+  isDragging = false; dragStart = dragEnd = null;
+  previewSvg.style.display = 'none';
+  previewSvg.innerHTML = '';
+  renderOriginal();
+}
+
+// ── DOWNLOAD ──
+document.getElementById('downloadBtn').addEventListener('click', () => {
+  if (!originalSvgContent) return;
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  const str = new XMLSerializer().serializeToString(outputSvg);
+  const blob = new Blob([str], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'crisp-output.svg'; a.click();
+  URL.revokeObjectURL(url);
+});
+
+// ── RENDER ──
+function getScale() {
+  return Math.min(canvasWrap.clientWidth / svgW, canvasWrap.clientHeight / svgH) * 0.88;
+}
+function getOff(s) {
+  return {
+    offX: (canvasWrap.clientWidth - svgW * s) / 2,
+    offY: (canvasWrap.clientHeight - svgH * s) / 2
+  };
+}
+
+function renderOriginal() {
+  const parser = new DOMParser();
+  const innerHTML = parser.parseFromString(originalSvgContent, 'image/svg+xml').querySelector('svg').innerHTML;
+  const scale = getScale(); const { offX, offY } = getOff(scale);
+  const cW = canvasWrap.clientWidth, cH = canvasWrap.clientHeight;
+  outputSvg.style.display = 'block';
+  outputSvg.setAttribute('width', cW); outputSvg.setAttribute('height', cH);
+  outputSvg.setAttribute('viewBox', `0 0 ${cW} ${cH}`);
+  outputSvg.innerHTML = '';
+  previewSvg.setAttribute('width', cW); previewSvg.setAttribute('height', cH);
+  previewSvg.setAttribute('viewBox', `0 0 ${cW} ${cH}`);
+  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  g.setAttribute('transform', `translate(${offX},${offY}) scale(${scale})`);
+  g.innerHTML = innerHTML;
+  outputSvg.appendChild(g);
+}
+
+// ── EVENTS on canvas ──
+canvasWrap.addEventListener('mousedown', e => {
+  if (!originalSvgContent || mode !== 'B') return;
+  isDragging = true;
+  dragStart = canvasPos(e); dragEnd = canvasPos(e);
+  previewSvg.style.display = 'block'; previewSvg.innerHTML = '';
+});
+canvasWrap.addEventListener('mousemove', e => {
+  if (!isDragging || mode !== 'B') return;
+  dragEnd = canvasPos(e); drawPreview(dragStart, dragEnd);
+});
+canvasWrap.addEventListener('mouseup', e => {
+  if (!isDragging || mode !== 'B') return;
+  isDragging = false; dragEnd = canvasPos(e);
+  previewSvg.innerHTML = ''; previewSvg.style.display = 'none';
+  const dx = dragEnd.x - dragStart.x, dy = dragEnd.y - dragStart.y;
+  if (Math.sqrt(dx * dx + dy * dy) < 8) return;
+  triggerModeB(dragStart, dragEnd);
+});
+canvasWrap.addEventListener('mouseleave', () => {
+  if (isDragging && mode === 'B') {
+    isDragging = false; previewSvg.innerHTML = ''; previewSvg.style.display = 'none';
+  }
+});
+canvasWrap.addEventListener('click', e => {
+  if (!originalSvgContent || mode !== 'A') return;
+  const scale = getScale(); const { offX, offY } = getOff(scale);
+  const pos = canvasPos(e);
+  triggerModeA((pos.x - offX) / scale, (pos.y - offY) / scale);
+});
+
+function canvasPos(e) {
+  const r = canvasWrap.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+
+function drawPreview(a, b) {
+  previewSvg.innerHTML = '';
+  const dx = b.x - a.x, dy = b.y - a.y, len = Math.sqrt(dx * dx + dy * dy) || 1;
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line.setAttribute('x1', a.x - (dx / len) * 2000); line.setAttribute('y1', a.y - (dy / len) * 2000);
+  line.setAttribute('x2', a.x + (dx / len) * 2000); line.setAttribute('y2', a.y + (dy / len) * 2000);
+  line.setAttribute('stroke', 'rgba(0,0,0,0.15)');
+  line.setAttribute('stroke-width', '1');
+  line.setAttribute('stroke-dasharray', '4 5');
+  previewSvg.appendChild(line);
+  const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  dot.setAttribute('cx', b.x); dot.setAttribute('cy', b.y);
+  dot.setAttribute('r', '4'); dot.setAttribute('fill', 'rgba(0,0,0,0.3)');
+  previewSvg.appendChild(dot);
+}
+
+// ── VORONOI ──
+function rand(a, b) { return a + Math.random() * (b - a); }
+
+function convexHull(pts) {
+  if (pts.length < 3) return pts;
+  pts = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], up = [];
+  for (const p of pts) { while (lo.length >= 2 && cross(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+  for (let i = pts.length - 1; i >= 0; i--) { const p = pts[i]; while (up.length >= 2 && cross(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); }
+  up.pop(); lo.pop(); return lo.concat(up);
+}
+function hullArea(h) {
+  let a = 0;
+  for (let i = 0; i < h.length; i++) { const j = (i + 1) % h.length; a += h[i][0] * h[j][1] - h[j][0] * h[i][1]; }
+  return Math.abs(a) / 2;
+}
+function getVoronoiCells(pts, w, h, res = 130) {
+  const cells = pts.map(() => []);
+  const sw = w / res, sh = h / res;
+  for (let gx = 0; gx <= res; gx++) for (let gy = 0; gy <= res; gy++) {
+    const px = gx * sw, py = gy * sh; let minD = Infinity, minI = 0;
+    pts.forEach((p, i) => { const d = (px - p[0]) ** 2 + (py - p[1]) ** 2; if (d < minD) { minD = d; minI = i; } });
+    cells[minI].push([px, py]);
+  }
+  return cells;
+}
+
+function buildAndRender(vpts) {
+  const parser = new DOMParser();
+  const innerHTML = parser.parseFromString(originalSvgContent, 'image/svg+xml').querySelector('svg').innerHTML;
+  const scale = getScale(); const { offX, offY } = getOff(scale);
+  const cW = canvasWrap.clientWidth, cH = canvasWrap.clientHeight;
+  outputSvg.setAttribute('width', cW); outputSvg.setAttribute('height', cH);
+  outputSvg.setAttribute('viewBox', `0 0 ${cW} ${cH}`);
+  outputSvg.innerHTML = ''; particles = [];
+  const cells = getVoronoiCells(vpts, svgW, svgH);
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  outputSvg.appendChild(defs);
+  const totalArea = svgW * svgH;
+  vpts.forEach((pt, i) => {
+    const hull = convexHull(cells[i]);
+    if (hull.length < 3) return;
+    const sf = hullArea(hull) / totalArea;
+    if (sf < 0.002) return;
+    const clipId = `clip_${i}`;
+    const clip = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath');
+    clip.setAttribute('id', clipId);
+    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    poly.setAttribute('points', hull.map(p => p.join(',')).join(' '));
+    clip.appendChild(poly); defs.appendChild(clip);
+    const hcx = hull.reduce((s, p) => s + p[0], 0) / hull.length;
+    const hcy = hull.reduce((s, p) => s + p[1], 0) / hull.length;
+    const cellG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    cellG.setAttribute('clip-path', `url(#${clipId})`);
+    cellG.innerHTML = innerHTML;
+    const wrapper = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    wrapper.appendChild(cellG);
+    outputSvg.appendChild(wrapper);
+    const scx = offX + hcx * scale, scy = offY + hcy * scale;
+    particles.push({ el: wrapper, cx: hcx, cy: hcy, screenCx: scx, screenCy: scy, px: scx, py: scy, rot: 0, vx: 0, vy: 0, vr: 0, scale, offX, offY, sf });
+  });
+  applyTransforms();
+}
+
+function applyTransforms() {
+  particles.forEach(p => {
+    const tx = p.px - p.screenCx, ty = p.py - p.screenCy;
+    p.el.setAttribute('transform', `translate(${p.offX + tx},${p.offY + ty}) scale(${p.scale}) rotate(${p.rot},${p.cx},${p.cy})`);
+  });
+}
+
+// ── MODE A ──
+function triggerModeA(clickX, clickY) {
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  const power = map(sliderPowerA.get(), 0.05, 20);
+  const crisp = map(sliderCrisp.get(), 1, 10);
+
+  const bigCount = 2 + Math.floor(crisp * 0.3);
+  for (let i = 0; i < bigCount; i++) {
+    const r = rand(svgW * 0.06, svgW * 0.3), a = rand(0, Math.PI * 2);
+    voronoiPointsA.push([Math.max(1, Math.min(svgW - 1, clickX + Math.cos(a) * r)), Math.max(1, Math.min(svgH - 1, clickY + Math.sin(a) * r))]);
+  }
+  for (let i = 0; i < 6 + crisp * 3; i++) {
+    const r = rand(1, svgW * 0.08), a = rand(0, Math.PI * 2);
+    voronoiPointsA.push([Math.max(1, Math.min(svgW - 1, clickX + Math.cos(a) * r)), Math.max(1, Math.min(svgH - 1, clickY + Math.sin(a) * r))]);
+  }
+
+  buildAndRender(voronoiPointsA);
+  const scale = getScale(); const { offX, offY } = getOff(scale);
+  const fromSX = offX + clickX * scale, fromSY = offY + clickY * scale;
+  const maxSpeed = 0.05 + (power / 20) * 2.5;
+
+  particles.forEach(p => {
+    const dx = p.screenCx - fromSX, dy = p.screenCy - fromSY, dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    const isSmall = p.sf < 0.03;
+    const speed = isSmall ? maxSpeed * rand(0.8, 2.0) : maxSpeed * rand(0.3, 0.8);
+    p.vx = (dx / dist) * speed + rand(-1, 1) * speed * 0.3;
+    p.vy = (dy / dist) * speed + rand(-1, 1) * speed * 0.3;
+    p.vr = rand(-1, 1) * (isSmall ? 0.8 : 0.2);
+  });
+  animate();
+}
+
+// ── MODE B ──
+function buildBreakPts(sA, sB, jagged) {
+  const scale = getScale(); const { offX, offY } = getOff(scale);
+  const ax = (sA.x - offX) / scale, ay = (sA.y - offY) / scale;
+  const bx = (sB.x - offX) / scale, by = (sB.y - offY) / scale;
+  const dx = bx - ax, dy = by - ay, len = Math.sqrt(dx * dx + dy * dy) || 1;
+  const ext = Math.sqrt(svgW * svgW + svgH * svgH) * 0.85;
+  const ox = ax - (dx / len) * ext, oy = ay - (dy / len) * ext;
+  const ex = ax + (dx / len) * ext, ey = ay + (dy / len) * ext;
+  const angle = Math.atan2(dy, dx);
+  const perp = angle + Math.PI / 2;
+  const cx = (ax + bx) / 2, cy = (ay + by) / 2;
+  const totalLen = Math.sqrt((ex - ox) ** 2 + (ey - oy) ** 2);
+
+  if (jagged <= 1.1) {
+    const gap = svgW * 0.006;
+    return {
+      pts: [
+        [cx + Math.cos(perp) * gap, cy + Math.sin(perp) * gap],
+        [cx - Math.cos(perp) * gap, cy - Math.sin(perp) * gap]
+      ],
+      perp, cx, cy
+    };
+  }
+
+  const t = (jagged - 1) / 9;
+  const teeth = Math.round(2 + t * 20);
+  const amplitude = svgW * (0.008 + t * 0.082);
+  const gap = svgW * (0.005 + t * 0.012);
+  const ph1A = rand(0, Math.PI * 2), ph2A = rand(0, Math.PI * 2), ph3A = rand(0, Math.PI * 2);
+  const ph1B = rand(0, Math.PI * 2), ph2B = rand(0, Math.PI * 2), ph3B = rand(0, Math.PI * 2);
+  const f1 = teeth * 2.2 / totalLen, f2 = f1 * 1.8, f3 = f1 * 3.5;
+
+  const pts = [];
+  for (let i = 0; i <= teeth; i++) {
+    const tt = i / teeth;
+    const lx = ox + (ex - ox) * tt, ly = oy + (ey - oy) * tt;
+    const d = tt * totalLen;
+    const profA = amplitude * (0.55 * Math.sin(d * f1 + ph1A) + 0.3 * Math.sin(d * f2 + ph2A) + 0.15 * Math.sin(d * f3 + ph3A));
+    const profB = amplitude * (0.55 * Math.sin(d * f1 + ph1B) + 0.3 * Math.sin(d * f2 + ph2B) + 0.15 * Math.sin(d * f3 + ph3B));
+    pts.push([lx + Math.cos(perp) * (gap + profA), ly + Math.sin(perp) * (gap + profA)]);
+    pts.push([lx - Math.cos(perp) * (gap + profB), ly - Math.sin(perp) * (gap + profB)]);
+  }
+  return { pts, perp, cx, cy };
+}
+
+function triggerModeB(sA, sB) {
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  const power = map(sliderPowerB.get(), 0.025, 0.6);
+  const jagged = map(sliderJagged.get(), 1, 10);
+
+  const { pts, perp, cx, cy } = buildBreakPts(sA, sB, jagged);
+  allBreakPts.push(...pts);
+  allBreakMeta.push({ perp, cx, cy });
+
+  buildAndRender(allBreakPts);
+
+  particles.forEach(p => {
+    const dx = p.cx - cx, dy = p.cy - cy;
+    const perpX = Math.cos(perp), perpY = Math.sin(perp);
+    const sign = (dx * perpX + dy * perpY) >= 0 ? 1 : -1;
+    p.vx = perpX * sign * power * rand(0.85, 1.15);
+    p.vy = perpY * sign * power * rand(0.85, 1.15);
+    p.vr = rand(-1, 1) * 0.006 * (jagged / 10);
+  });
+  animate();
+}
+
+// ── ANIMATION ──
+function animate() {
+  const cW = canvasWrap.clientWidth, cH = canvasWrap.clientHeight;
+  let anyMoving = false;
+  particles.forEach(p => {
+    const isSmall = p.sf < 0.03;
+    const friction = isSmall ? 0.88 : 0.94;
+    p.vx *= friction; p.vy *= friction; p.vr *= 0.92;
+    p.px += p.vx; p.py += p.vy; p.rot += p.vr;
+    if (p.px < 0) { p.px = 0; p.vx = Math.abs(p.vx) * 0.2; }
+    if (p.px > cW) { p.px = cW; p.vx = -Math.abs(p.vx) * 0.2; }
+    if (p.py < 0) { p.py = 0; p.vy = Math.abs(p.vy) * 0.2; }
+    if (p.py > cH) { p.py = cH; p.vy = -Math.abs(p.vy) * 0.1; }
+    if (Math.sqrt(p.vx ** 2 + p.vy ** 2) > 0.005 || Math.abs(p.vr) > 0.003) anyMoving = true;
+  });
+  applyTransforms();
+  if (anyMoving) rafId = requestAnimationFrame(animate);
+  else rafId = null;
+}
+</script>
+</body>
+</html>
