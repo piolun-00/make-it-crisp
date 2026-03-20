@@ -71,6 +71,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    transform-style: preserve-3d;
   }
 
   #outputSvg {
@@ -82,6 +83,15 @@
     top: 0; left: 0;
     pointer-events: none;
     display: none;
+    z-index: 100;
+  }
+
+  .fragment-div {
+    position: absolute;
+    top: 0; left: 0;
+    pointer-events: none;
+    transform-style: preserve-3d;
+    will-change: transform;
   }
 
   /* ── LEFT SIDEBAR ── */
@@ -429,7 +439,7 @@ const sliderJagged = makeSlider(
 );
 
 // helpers: map 0..1 to range
-const map = (v, min, max) => min + v * (max - min);
+const mapVal = (v, min, max) => min + v * (max - min);
 
 // ── STATE ──
 let originalSvgContent = null;
@@ -442,11 +452,78 @@ let allBreakPts = [];
 let allBreakMeta = [];
 let isDragging = false;
 let dragStart = null, dragEnd = null;
+let colorImageData = null;
 
 const canvasWrap = document.getElementById('canvas-wrap');
 const outputSvg = document.getElementById('outputSvg');
 const previewSvg = document.getElementById('previewSvg');
 const hintText = document.getElementById('hint-text');
+
+// ── COLOR SAMPLING ──
+function prepareColorSampling() {
+  return new Promise(resolve => {
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(svgW);
+    canvas.height = Math.round(svgH);
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    const blob = new Blob([originalSvgContent], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, svgW, svgH);
+      try {
+        colorImageData = ctx.getImageData(0, 0, Math.round(svgW), Math.round(svgH));
+      } catch (e) {
+        colorImageData = null;
+      }
+      URL.revokeObjectURL(url);
+      resolve();
+    };
+    img.onerror = () => {
+      colorImageData = null;
+      URL.revokeObjectURL(url);
+      resolve();
+    };
+    img.src = url;
+  });
+}
+
+function sampleColor(x, y) {
+  if (!colorImageData) return '#555555';
+  const w = colorImageData.width;
+  const h = colorImageData.height;
+  const px = Math.round(Math.max(0, Math.min(w - 1, x)));
+  const py = Math.round(Math.max(0, Math.min(h - 1, y)));
+  // Sample a small area around the point for a more stable color
+  let rSum = 0, gSum = 0, bSum = 0, count = 0;
+  for (let dy = -2; dy <= 2; dy++) {
+    for (let dx = -2; dx <= 2; dx++) {
+      const sx = Math.max(0, Math.min(w - 1, px + dx));
+      const sy = Math.max(0, Math.min(h - 1, py + dy));
+      const idx = (sy * w + sx) * 4;
+      const a = colorImageData.data[idx + 3];
+      if (a > 20) {
+        rSum += colorImageData.data[idx];
+        gSum += colorImageData.data[idx + 1];
+        bSum += colorImageData.data[idx + 2];
+        count++;
+      }
+    }
+  }
+  if (count === 0) return '#555555';
+  return `rgb(${Math.round(rSum / count)},${Math.round(gSum / count)},${Math.round(bSum / count)})`;
+}
+
+function generateJaggedPolygon(numVerts, size) {
+  const verts = [];
+  for (let i = 0; i < numVerts; i++) {
+    const baseAngle = (i / numVerts) * Math.PI * 2;
+    const angle = baseAngle + rand(-0.5, 0.5);
+    const r = size * rand(0.35, 1.0);
+    verts.push([Math.cos(angle) * r, Math.sin(angle) * r]);
+  }
+  return verts;
+}
 
 // ── MODE TOGGLE ──
 document.getElementById('btnA').addEventListener('click', () => setMode('A'));
@@ -458,7 +535,7 @@ function setMode(m) {
   document.getElementById('btnB').classList.toggle('active', m === 'B');
   document.getElementById('panel-a').style.display = m === 'A' ? 'flex' : 'none';
   document.getElementById('panel-b').style.display = m === 'B' ? 'flex' : 'none';
-  canvasWrap.style.cursor = m === 'B' ? 'crosshair' : 'crosshair';
+  canvasWrap.style.cursor = 'crosshair';
   if (originalSvgContent) resetState();
 }
 
@@ -471,7 +548,7 @@ document.getElementById('fileInput').addEventListener('change', e => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = ev => {
+  reader.onload = async ev => {
     originalSvgContent = ev.target.result;
     const parser = new DOMParser();
     const doc = parser.parseFromString(originalSvgContent, 'image/svg+xml');
@@ -485,6 +562,7 @@ document.getElementById('fileInput').addEventListener('change', e => {
       svgW = parseFloat(svgEl.getAttribute('width')) || 400;
       svgH = parseFloat(svgEl.getAttribute('height')) || 400;
     }
+    await prepareColorSampling();
     resetState();
     hintText.style.opacity = '0';
   };
@@ -497,12 +575,18 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   if (originalSvgContent) resetState();
 });
 
+function clearFragments() {
+  canvasWrap.querySelectorAll('.fragment-div').forEach(el => el.remove());
+}
+
 function resetState() {
   if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
   particles = []; voronoiPointsA = []; allBreakPts = []; allBreakMeta = [];
   isDragging = false; dragStart = dragEnd = null;
   previewSvg.style.display = 'none';
   previewSvg.innerHTML = '';
+  clearFragments();
+  outputSvg.style.display = 'block';
   renderOriginal();
 }
 
@@ -510,7 +594,32 @@ function resetState() {
 document.getElementById('downloadBtn').addEventListener('click', () => {
   if (!originalSvgContent) return;
   if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-  const str = new XMLSerializer().serializeToString(outputSvg);
+
+  let str;
+  if (particles.length === 0) {
+    str = new XMLSerializer().serializeToString(outputSvg);
+  } else {
+    // Build SVG from current particle state (2D projection, no 3D)
+    const ns = 'http://www.w3.org/2000/svg';
+    const cW = canvasWrap.clientWidth, cH = canvasWrap.clientHeight;
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('xmlns', ns);
+    svg.setAttribute('width', cW);
+    svg.setAttribute('height', cH);
+    svg.setAttribute('viewBox', `0 0 ${cW} ${cH}`);
+    particles.forEach(p => {
+      const innerSvg = p.el.querySelector('svg');
+      if (!innerSvg) return;
+      const g = document.createElementNS(ns, 'g');
+      const tx = p.px - p.screenCx;
+      const ty = p.py - p.screenCy;
+      g.setAttribute('transform', `translate(${tx},${ty}) rotate(${p.rot},${p.screenCx},${p.screenCy})`);
+      g.innerHTML = innerSvg.innerHTML;
+      svg.appendChild(g);
+    });
+    str = new XMLSerializer().serializeToString(svg);
+  }
+
   const blob = new Blob([str], { type: 'image/svg+xml' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -549,6 +658,7 @@ function renderOriginal() {
 // ── EVENTS on canvas ──
 canvasWrap.addEventListener('mousedown', e => {
   if (!originalSvgContent || mode !== 'B') return;
+  if (e.target.closest('#panel') || e.target.closest('#sidebar')) return;
   isDragging = true;
   dragStart = canvasPos(e); dragEnd = canvasPos(e);
   previewSvg.style.display = 'block'; previewSvg.innerHTML = '';
@@ -626,55 +736,117 @@ function getVoronoiCells(pts, w, h, res = 130) {
   return cells;
 }
 
+// ── BUILD & RENDER (div+svg fragments) ──
 function buildAndRender(vpts) {
   const parser = new DOMParser();
   const innerHTML = parser.parseFromString(originalSvgContent, 'image/svg+xml').querySelector('svg').innerHTML;
   const scale = getScale(); const { offX, offY } = getOff(scale);
   const cW = canvasWrap.clientWidth, cH = canvasWrap.clientHeight;
-  outputSvg.setAttribute('width', cW); outputSvg.setAttribute('height', cH);
-  outputSvg.setAttribute('viewBox', `0 0 ${cW} ${cH}`);
-  outputSvg.innerHTML = ''; particles = [];
+
+  outputSvg.style.display = 'none';
+  clearFragments();
+  particles = [];
+
   const cells = getVoronoiCells(vpts, svgW, svgH);
-  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-  outputSvg.appendChild(defs);
   const totalArea = svgW * svgH;
+  const ns = 'http://www.w3.org/2000/svg';
+  const clipIdBase = Date.now();
+
   vpts.forEach((pt, i) => {
     const hull = convexHull(cells[i]);
     if (hull.length < 3) return;
     const sf = hullArea(hull) / totalArea;
     if (sf < 0.002) return;
-    const clipId = `clip_${i}`;
-    const clip = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath');
-    clip.setAttribute('id', clipId);
-    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-    poly.setAttribute('points', hull.map(p => p.join(',')).join(' '));
-    clip.appendChild(poly); defs.appendChild(clip);
+
     const hcx = hull.reduce((s, p) => s + p[0], 0) / hull.length;
     const hcy = hull.reduce((s, p) => s + p[1], 0) / hull.length;
-    const cellG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    cellG.setAttribute('clip-path', `url(#${clipId})`);
-    cellG.innerHTML = innerHTML;
-    const wrapper = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    wrapper.appendChild(cellG);
-    outputSvg.appendChild(wrapper);
-    const scx = offX + hcx * scale, scy = offY + hcy * scale;
-    particles.push({ el: wrapper, cx: hcx, cy: hcy, screenCx: scx, screenCy: scy, px: scx, py: scy, rot: 0, vx: 0, vy: 0, vr: 0, scale, offX, offY, sf });
+    const scx = offX + hcx * scale;
+    const scy = offY + hcy * scale;
+    const isCrumb = sf < 0.03 && mode === 'A';
+
+    const div = document.createElement('div');
+    div.className = 'fragment-div';
+    div.style.width = cW + 'px';
+    div.style.height = cH + 'px';
+    div.style.transformOrigin = scx + 'px ' + scy + 'px';
+
+    if (isCrumb) {
+      // Task 3: random jagged polygon crumb
+      const color = sampleColor(hcx, hcy);
+      const crumbSize = rand(2, 7) * scale;
+      const numVerts = Math.floor(rand(5, 9));
+      const verts = generateJaggedPolygon(numVerts, crumbSize);
+
+      const svg = document.createElementNS(ns, 'svg');
+      svg.setAttribute('width', cW);
+      svg.setAttribute('height', cH);
+      svg.setAttribute('viewBox', `0 0 ${cW} ${cH}`);
+      svg.style.cssText = 'position:absolute;top:0;left:0;overflow:visible;';
+
+      const polygon = document.createElementNS(ns, 'polygon');
+      const polyPoints = verts.map(p => (scx + p[0]) + ',' + (scy + p[1])).join(' ');
+      polygon.setAttribute('points', polyPoints);
+      polygon.setAttribute('fill', color);
+      svg.appendChild(polygon);
+      div.appendChild(svg);
+    } else {
+      // Regular fragment with clipPath
+      const svg = document.createElementNS(ns, 'svg');
+      svg.setAttribute('width', cW);
+      svg.setAttribute('height', cH);
+      svg.setAttribute('viewBox', `0 0 ${cW} ${cH}`);
+      svg.style.cssText = 'position:absolute;top:0;left:0;';
+
+      const defs = document.createElementNS(ns, 'defs');
+      const clipId = `clip_${clipIdBase}_${i}`;
+      const clip = document.createElementNS(ns, 'clipPath');
+      clip.setAttribute('id', clipId);
+      const poly = document.createElementNS(ns, 'polygon');
+      poly.setAttribute('points', hull.map(p => p.join(',')).join(' '));
+      clip.appendChild(poly);
+      defs.appendChild(clip);
+      svg.appendChild(defs);
+
+      const outerG = document.createElementNS(ns, 'g');
+      outerG.setAttribute('transform', `translate(${offX},${offY}) scale(${scale})`);
+      const cellG = document.createElementNS(ns, 'g');
+      cellG.setAttribute('clip-path', `url(#${clipId})`);
+      cellG.innerHTML = innerHTML;
+      outerG.appendChild(cellG);
+      svg.appendChild(outerG);
+      div.appendChild(svg);
+    }
+
+    canvasWrap.appendChild(div);
+
+    particles.push({
+      el: div, cx: hcx, cy: hcy,
+      screenCx: scx, screenCy: scy,
+      px: scx, py: scy,
+      rot: 0, rx: 0, ry: 0,
+      targetRx: 0, targetRy: 0,
+      vx: 0, vy: 0, vr: 0,
+      scale, offX, offY, sf,
+      isCrumb
+    });
   });
+
   applyTransforms();
 }
 
 function applyTransforms() {
   particles.forEach(p => {
-    const tx = p.px - p.screenCx, ty = p.py - p.screenCy;
-    p.el.setAttribute('transform', `translate(${p.offX + tx},${p.offY + ty}) scale(${p.scale}) rotate(${p.rot},${p.cx},${p.cy})`);
+    const tx = p.px - p.screenCx;
+    const ty = p.py - p.screenCy;
+    p.el.style.transform = `perspective(600px) translate(${tx}px, ${ty}px) rotateX(${p.rx}deg) rotateY(${p.ry}deg) rotateZ(${p.rot}deg)`;
   });
 }
 
 // ── MODE A ──
 function triggerModeA(clickX, clickY) {
   if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-  const power = map(sliderPowerA.get(), 0.05, 20);
-  const crisp = map(sliderCrisp.get(), 1, 10);
+  const power = mapVal(sliderPowerA.get(), 0.05, 20);
+  const crisp = mapVal(sliderCrisp.get(), 1, 10);
 
   const bigCount = 2 + Math.floor(crisp * 0.3);
   for (let i = 0; i < bigCount; i++) {
@@ -690,6 +862,7 @@ function triggerModeA(clickX, clickY) {
   const scale = getScale(); const { offX, offY } = getOff(scale);
   const fromSX = offX + clickX * scale, fromSY = offY + clickY * scale;
   const maxSpeed = 0.05 + (power / 20) * 2.5;
+  const maxAngle = mapVal(sliderPowerA.get(), 8, 38);
 
   particles.forEach(p => {
     const dx = p.screenCx - fromSX, dy = p.screenCy - fromSY, dist = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -698,6 +871,12 @@ function triggerModeA(clickX, clickY) {
     p.vx = (dx / dist) * speed + rand(-1, 1) * speed * 0.3;
     p.vy = (dy / dist) * speed + rand(-1, 1) * speed * 0.3;
     p.vr = rand(-1, 1) * (isSmall ? 0.8 : 0.2);
+
+    // 3D rotation — direction away from click, proportional to power
+    const angle = Math.atan2(dy, dx);
+    const rotAmount = isSmall ? maxAngle * rand(0.6, 1.0) : maxAngle * rand(0.3, 0.8);
+    p.targetRy = Math.cos(angle) * rotAmount;
+    p.targetRx = -Math.sin(angle) * rotAmount * 0.7;
   });
   animate();
 }
@@ -723,7 +902,7 @@ function buildBreakPts(sA, sB, jagged) {
         [cx + Math.cos(perp) * gap, cy + Math.sin(perp) * gap],
         [cx - Math.cos(perp) * gap, cy - Math.sin(perp) * gap]
       ],
-      perp, cx, cy
+      perp, cx, cy, ax, ay, bx, by
     };
   }
 
@@ -745,27 +924,51 @@ function buildBreakPts(sA, sB, jagged) {
     pts.push([lx + Math.cos(perp) * (gap + profA), ly + Math.sin(perp) * (gap + profA)]);
     pts.push([lx - Math.cos(perp) * (gap + profB), ly - Math.sin(perp) * (gap + profB)]);
   }
-  return { pts, perp, cx, cy };
+  return { pts, perp, cx, cy, ax, ay, bx, by };
 }
 
 function triggerModeB(sA, sB) {
   if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-  const power = map(sliderPowerB.get(), 0.025, 0.6);
-  const jagged = map(sliderJagged.get(), 1, 10);
+  const power = mapVal(sliderPowerB.get(), 0.025, 0.6);
+  const jagged = mapVal(sliderJagged.get(), 1, 10);
 
-  const { pts, perp, cx, cy } = buildBreakPts(sA, sB, jagged);
+  const { pts, perp, cx, cy, ax, ay, bx, by } = buildBreakPts(sA, sB, jagged);
   allBreakPts.push(...pts);
   allBreakMeta.push({ perp, cx, cy });
 
   buildAndRender(allBreakPts);
 
+  // Break axis vector in SVG coords
+  const breakDx = bx - ax, breakDy = by - ay;
+  const breakLen = Math.sqrt(breakDx * breakDx + breakDy * breakDy) || 1;
+
+  // Find max distance from break axis for normalization
+  let maxDist = 0;
+  particles.forEach(p => {
+    const d = Math.abs((p.cx - ax) * breakDy - (p.cy - ay) * breakDx) / breakLen;
+    if (d > maxDist) maxDist = d;
+  });
+
+  const maxAngle = 35;
+  const perpX = Math.cos(perp), perpY = Math.sin(perp);
+
   particles.forEach(p => {
     const dx = p.cx - cx, dy = p.cy - cy;
-    const perpX = Math.cos(perp), perpY = Math.sin(perp);
     const sign = (dx * perpX + dy * perpY) >= 0 ? 1 : -1;
+
+    // Lateral separation (existing behavior)
     p.vx = perpX * sign * power * rand(0.85, 1.15);
     p.vy = perpY * sign * power * rand(0.85, 1.15);
     p.vr = rand(-1, 1) * 0.006 * (jagged / 10);
+
+    // Task 2: Board-breaking rotateX — distance from axis → droop
+    const dist = Math.abs((p.cx - ax) * breakDy - (p.cy - ay) * breakDx) / breakLen;
+    const normalizedDist = maxDist > 0 ? dist / maxDist : 0;
+    // Quadratic falloff for more natural board-breaking feel
+    const droopAmount = normalizedDist * normalizedDist * maxAngle * rand(0.8, 1.0);
+    p.targetRx = droopAmount;
+    // Slight lateral tilt based on side
+    p.targetRy = sign * normalizedDist * 8 * rand(0.5, 1.0);
   });
   animate();
 }
@@ -779,11 +982,20 @@ function animate() {
     const friction = isSmall ? 0.88 : 0.94;
     p.vx *= friction; p.vy *= friction; p.vr *= 0.92;
     p.px += p.vx; p.py += p.vy; p.rot += p.vr;
+
+    // Lerp 3D rotation toward targets
+    p.rx += (p.targetRx - p.rx) * 0.07;
+    p.ry += (p.targetRy - p.ry) * 0.07;
+
     if (p.px < 0) { p.px = 0; p.vx = Math.abs(p.vx) * 0.2; }
     if (p.px > cW) { p.px = cW; p.vx = -Math.abs(p.vx) * 0.2; }
     if (p.py < 0) { p.py = 0; p.vy = Math.abs(p.vy) * 0.2; }
     if (p.py > cH) { p.py = cH; p.vy = -Math.abs(p.vy) * 0.1; }
-    if (Math.sqrt(p.vx ** 2 + p.vy ** 2) > 0.005 || Math.abs(p.vr) > 0.003) anyMoving = true;
+
+    if (Math.sqrt(p.vx ** 2 + p.vy ** 2) > 0.005 || Math.abs(p.vr) > 0.003 ||
+        Math.abs(p.targetRx - p.rx) > 0.15 || Math.abs(p.targetRy - p.ry) > 0.15) {
+      anyMoving = true;
+    }
   });
   applyTransforms();
   if (anyMoving) rafId = requestAnimationFrame(animate);
