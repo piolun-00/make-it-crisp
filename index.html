@@ -698,12 +698,13 @@
       height: 72px;
     }
 
-    /* Push content down so logo doesn't overlap artboard */
-    #app {
-      padding-top: 100px;
+    /* Flatten right-panel so children participate in app flex order */
+    #right-panel {
+      display: contents !important;
     }
 
-    #artboard {
+    #logo-wrap { order: 1; }
+    #artboard { order: 2;
       position: relative;
       top: auto;
       left: auto;
@@ -713,6 +714,7 @@
       min-height: 300px;
       aspect-ratio: 960 / 600;
       flex-shrink: 0;
+      overflow: visible;
     }
 
     #right-panel {
@@ -731,13 +733,16 @@
       left: auto;
       transform: none;
       width: 100%;
+      order: 3;
     }
 
     #bottom-left {
       position: relative;
       left: auto;
       bottom: auto;
+      right: auto;
       justify-content: flex-start;
+      order: 4;
     }
 
     #mode-bar { align-items: stretch; gap: 8px; flex-wrap: nowrap; }
