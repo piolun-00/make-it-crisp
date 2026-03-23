@@ -131,11 +131,11 @@
   /* ── ARTBOARD ── */
   #artboard {
     position: absolute;
-    top: 108px;
+    top: 112px;
     left: 50%;
     transform: translateX(-50%);
     width: min(1280px, calc(100% - 40px), calc((100vh - 40px) * 4 / 3));
-    bottom: 290px;
+    bottom: calc(clamp(12px, 2.5vh, 24px) + 275px);
     min-height: 200px;
     border: 1px solid var(--artboard-border);
     border-radius: 24px;
@@ -670,6 +670,8 @@
       align-items: stretch;
       padding: 14px;
       gap: 14px;
+      min-height: 0;
+      height: auto;
       overflow-y: auto;
     }
 
@@ -724,7 +726,9 @@
       width: 100%;
       height: auto;
       min-height: 200px;
-      flex: 1 1 auto;
+      bottom: auto;
+      aspect-ratio: 4 / 3;
+      flex: 0 0 auto;
       overflow: visible;
     }
 
