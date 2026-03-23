@@ -131,11 +131,11 @@
   /* ── ARTBOARD ── */
   #artboard {
     position: absolute;
-    top: 116px;
+    top: min(116px, 12vh);
     left: 50%;
     transform: translateX(-50%);
     width: min(960px, calc(100% - 40px));
-    bottom: 290px;
+    bottom: min(290px, 32vh);
     border: 1px solid var(--artboard-border);
     border-radius: 24px;
     overflow: hidden;
