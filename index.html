@@ -131,11 +131,11 @@
   /* ── ARTBOARD ── */
   #artboard {
     position: absolute;
-    top: 20px;
+    top: min(108px, 12vh);
     left: 50%;
     transform: translateX(-50%);
     width: min(1280px, calc(100% - 40px), calc((100vh - 40px) * 4 / 3));
-    height: calc(100% - 40px);
+    bottom: min(290px, 32vh);
     border: 1px solid var(--artboard-border);
     border-radius: 24px;
     overflow: hidden;
@@ -891,6 +891,36 @@
 
 <script>
 document.getElementById('copy-year').textContent = new Date().getFullYear();
+
+// ── SVG SANITIZER ──
+function sanitizeSvgNode(node) {
+  const dangerous = ['script', 'foreignObject', 'iframe', 'object', 'embed', 'use'];
+  dangerous.forEach(tag => {
+    node.querySelectorAll(tag).forEach(el => el.remove());
+  });
+  const walk = node.querySelectorAll('*');
+  walk.forEach(el => {
+    const attrs = [...el.attributes];
+    attrs.forEach(a => {
+      if (a.name.startsWith('on') || (a.value && a.value.trim().toLowerCase().startsWith('javascript:'))) {
+        el.removeAttribute(a.name);
+      }
+    });
+    ['href', 'xlink:href', 'src'].forEach(attr => {
+      const v = el.getAttribute(attr);
+      if (v && /^(https?:|\/\/)/i.test(v.trim())) el.removeAttribute(attr);
+    });
+  });
+  return node;
+}
+function sanitizeSvgString(svgStr) {
+  const doc = new DOMParser().parseFromString(svgStr, 'image/svg+xml');
+  const svg = doc.querySelector('svg');
+  if (!svg) return '';
+  sanitizeSvgNode(svg);
+  return svg.innerHTML;
+}
+
 // ── SLIDER LOGIC ──
 function makeSlider(trackEl, thumbEl, fillEl, initial, onChange) {
   let val = initial;
@@ -1061,7 +1091,12 @@ document.getElementById('fileInput').addEventListener('change', e => {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = async ev => {
-    originalSvgContent = ev.target.result;
+    const rawSvg = ev.target.result;
+    const parsedDoc = new DOMParser().parseFromString(rawSvg, 'image/svg+xml');
+    const svgEl = parsedDoc.querySelector('svg');
+    if (!svgEl) return;
+    sanitizeSvgNode(svgEl);
+    originalSvgContent = new XMLSerializer().serializeToString(svgEl);
     const parser = new DOMParser();
     const doc = parser.parseFromString(originalSvgContent, 'image/svg+xml');
     const svgEl = doc.querySelector('svg');
