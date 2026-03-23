@@ -900,33 +900,7 @@
 document.getElementById('copy-year').textContent = new Date().getFullYear();
 
 // ── SVG SANITIZER ──
-function sanitizeSvgNode(node) {
-  const dangerous = ['script', 'foreignObject', 'iframe', 'object', 'embed', 'use'];
-  dangerous.forEach(tag => {
-    node.querySelectorAll(tag).forEach(el => el.remove());
-  });
-  const walk = node.querySelectorAll('*');
-  walk.forEach(el => {
-    const attrs = [...el.attributes];
-    attrs.forEach(a => {
-      if (a.name.startsWith('on') || (a.value && a.value.trim().toLowerCase().startsWith('javascript:'))) {
-        el.removeAttribute(a.name);
-      }
-    });
-    ['href', 'xlink:href', 'src'].forEach(attr => {
-      const v = el.getAttribute(attr);
-      if (v && /^(https?:|\/\/)/i.test(v.trim())) el.removeAttribute(attr);
-    });
-  });
-  return node;
-}
-function sanitizeSvgString(svgStr) {
-  const doc = new DOMParser().parseFromString(svgStr, 'image/svg+xml');
-  const svg = doc.querySelector('svg');
-  if (!svg) return '';
-  sanitizeSvgNode(svg);
-  return svg.innerHTML;
-}
+// Sanitizer removed — client-side only app, no server interaction
 
 // ── SLIDER LOGIC ──
 function makeSlider(trackEl, thumbEl, fillEl, initial, onChange) {
@@ -1098,23 +1072,18 @@ document.getElementById('fileInput').addEventListener('change', e => {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = async ev => {
-    const rawSvg = ev.target.result;
-    const parsedDoc = new DOMParser().parseFromString(rawSvg, 'image/svg+xml');
-    const svgEl = parsedDoc.querySelector('svg');
+    originalSvgContent = ev.target.result;
+    const doc = new DOMParser().parseFromString(originalSvgContent, 'image/svg+xml');
+    const svgEl = doc.querySelector('svg');
     if (!svgEl) return;
-    sanitizeSvgNode(svgEl);
-    originalSvgContent = new XMLSerializer().serializeToString(svgEl);
-    const parser2 = new DOMParser();
-    const doc2 = parser2.parseFromString(originalSvgContent, 'image/svg+xml');
-    const svgEl2 = doc2.querySelector('svg');
-    const vb = svgEl2.getAttribute('viewBox');
+    const vb = svgEl.getAttribute('viewBox');
     if (vb) {
       const p = vb.trim().split(/[\s,]+/);
       svgW = parseFloat(p[2]) || 400;
       svgH = parseFloat(p[3]) || 400;
     } else {
-      svgW = parseFloat(svgEl2.getAttribute('width')) || 400;
-      svgH = parseFloat(svgEl2.getAttribute('height')) || 400;
+      svgW = parseFloat(svgEl.getAttribute('width')) || 400;
+      svgH = parseFloat(svgEl.getAttribute('height')) || 400;
     }
     await prepareColorSampling();
     resetState();
