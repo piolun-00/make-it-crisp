@@ -1193,9 +1193,9 @@ function renderOriginal() {
   const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   g.setAttribute('transform', `translate(${offX},${offY}) scale(${scale})`);
   // Use importNode to preserve namespaced attributes (xlink:href for embedded images)
-  while (srcSvg.firstChild) {
-    g.appendChild(document.importNode(srcSvg.firstChild, true));
-  }
+  Array.from(srcSvg.childNodes).forEach(child => {
+    g.appendChild(document.importNode(child, true));
+  });
   outputSvg.appendChild(g);
 }
 
