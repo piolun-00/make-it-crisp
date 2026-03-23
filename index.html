@@ -135,7 +135,7 @@
     left: 50%;
     transform: translateX(-50%);
     width: min(1280px, calc(100% - 40px), calc((100vh - 40px) * 4 / 3));
-    bottom: calc(clamp(12px, 2.5vh, 24px) + 270px);
+    bottom: 20px;
     min-height: 200px;
     border: 1px solid var(--artboard-border);
     border-radius: 24px;
@@ -1212,20 +1212,35 @@ function getOff(s) {
 
 function renderOriginal() {
   const parser = new DOMParser();
-  const innerHTML = parser.parseFromString(originalSvgContent, 'image/svg+xml').querySelector('svg').innerHTML;
+  const srcSvg = parser.parseFromString(originalSvgContent, 'image/svg+xml').querySelector('svg');
   const scale = getScale(); const { offX, offY } = getOff(scale);
   const cW = canvasWrap.clientWidth, cH = canvasWrap.clientHeight;
   outputSvg.style.display = 'block';
   outputSvg.setAttribute('width', cW); outputSvg.setAttribute('height', cH);
   outputSvg.setAttribute('viewBox', `0 0 ${cW} ${cH}`);
-  outputSvg.innerHTML = '';
+  while (outputSvg.firstChild) outputSvg.removeChild(outputSvg.firstChild);
   previewSvg.setAttribute('width', cW); previewSvg.setAttribute('height', cH);
   previewSvg.setAttribute('viewBox', `0 0 ${cW} ${cH}`);
   const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   g.setAttribute('transform', `translate(${offX},${offY}) scale(${scale})`);
-  g.innerHTML = innerHTML;
+  // Use importNode to preserve namespaced attributes (xlink:href for embedded images)
+  while (srcSvg.firstChild) {
+    g.appendChild(document.importNode(srcSvg.firstChild, true));
+  }
   outputSvg.appendChild(g);
 }
+
+// ── ARTBOARD POSITION: keep 20px gap above controls ──
+function updateArtboardBottom() {
+  if (window.innerWidth <= 1400) return; // only desktop
+  const controls = document.getElementById('bottom-controls');
+  if (!controls) return;
+  const rect = controls.getBoundingClientRect();
+  const artboard = document.getElementById('artboard');
+  artboard.style.bottom = (window.innerHeight - rect.top + 20) + 'px';
+}
+updateArtboardBottom();
+window.addEventListener('resize', updateArtboardBottom);
 
 // ── RESIZE: re-center SVG on window resize ──
 let resizeTimer = null;
