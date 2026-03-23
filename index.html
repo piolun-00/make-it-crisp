@@ -555,7 +555,6 @@
     color: var(--gray);
   }
 
-  /* ── RESPONSIVE: side-by-side layout ── */
   /* ── RESPONSIVE: side-by-side ── */
   @media (max-width: 1400px) {
     #app {
@@ -610,8 +609,8 @@
       height: auto;
       max-height: none;
       min-height: 0;
-      flex: 1 1 0;
       min-width: 0;
+      flex: 1 1 0;
       align-self: stretch;
     }
 
@@ -728,6 +727,7 @@
       width: 100%;
       height: auto;
       min-height: 200px;
+      min-width: 0;
       bottom: auto;
       aspect-ratio: 4 / 3;
       flex: 0 0 auto;
@@ -900,9 +900,6 @@
 <script>
 document.getElementById('copy-year').textContent = new Date().getFullYear();
 
-// ── SVG SANITIZER ──
-// Sanitizer removed — client-side only app, no server interaction
-
 // ── SLIDER LOGIC ──
 function makeSlider(trackEl, thumbEl, fillEl, initial, onChange) {
   let val = initial;
@@ -957,6 +954,7 @@ const mapVal = (v, min, max) => min + v * (max - min);
 
 // ── STATE ──
 let originalSvgContent = null;
+let parsedSvgDoc = null;
 let svgW = 400, svgH = 400;
 let particles = [];
 let rafId = null;
@@ -1074,8 +1072,8 @@ document.getElementById('fileInput').addEventListener('change', e => {
   const reader = new FileReader();
   reader.onload = async ev => {
     originalSvgContent = ev.target.result;
-    const doc = new DOMParser().parseFromString(originalSvgContent, 'image/svg+xml');
-    const svgEl = doc.querySelector('svg');
+    parsedSvgDoc = new DOMParser().parseFromString(originalSvgContent, 'image/svg+xml');
+    const svgEl = parsedSvgDoc.querySelector('svg');
     if (!svgEl) return;
     const vb = svgEl.getAttribute('viewBox');
     if (vb) {
@@ -1110,7 +1108,7 @@ function resetState() {
   particles = []; voronoiPointsA = []; allBreakPts = []; allBreakMeta = [];
   isDragging = false; dragStart = dragEnd = null;
   previewSvg.style.display = 'none';
-  previewSvg.innerHTML = '';
+  while (previewSvg.firstChild) previewSvg.removeChild(previewSvg.firstChild);
   clearFragments();
   outputSvg.style.display = 'block';
   renderOriginal();
@@ -1139,7 +1137,9 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
       const tx = p.px - p.screenCx;
       const ty = p.py - p.screenCy;
       g.setAttribute('transform', `translate(${tx},${ty}) rotate(${p.rot},${p.screenCx},${p.screenCy})`);
-      g.innerHTML = innerSvg.innerHTML;
+      Array.from(innerSvg.childNodes).forEach(child => {
+        g.appendChild(document.importNode(child, true));
+      });
       svg.appendChild(g);
     });
     str = new XMLSerializer().serializeToString(svg);
@@ -1181,8 +1181,7 @@ function getOff(s) {
 }
 
 function renderOriginal() {
-  const parser = new DOMParser();
-  const srcSvg = parser.parseFromString(originalSvgContent, 'image/svg+xml').querySelector('svg');
+  const srcSvg = parsedSvgDoc.querySelector('svg');
   const scale = getScale(); const { offX, offY } = getOff(scale);
   const cW = canvasWrap.clientWidth, cH = canvasWrap.clientHeight;
   outputSvg.style.display = 'block';
@@ -1213,7 +1212,7 @@ function updateArtboardBottom() {
   const controlsHeight = controls.offsetHeight;
   artboard.style.bottom = (controlsBottom + controlsHeight + 20) + 'px';
 }
-updateArtboardBottom();
+requestAnimationFrame(updateArtboardBottom);
 window.addEventListener('resize', updateArtboardBottom);
 
 // ── RESIZE: re-center SVG on window resize ──
@@ -1248,7 +1247,7 @@ canvasWrap.addEventListener('touchstart', e => {
   isDragging = true;
   const p = touchPos(e);
   dragStart = { x: p.x, y: p.y }; dragEnd = { x: p.x, y: p.y };
-  previewSvg.style.display = 'block'; previewSvg.innerHTML = '';
+  previewSvg.style.display = 'block'; while (previewSvg.firstChild) previewSvg.removeChild(previewSvg.firstChild);
 }, { passive: false });
 
 canvasWrap.addEventListener('touchmove', e => {
@@ -1263,7 +1262,7 @@ canvasWrap.addEventListener('touchend', e => {
   isDragging = false;
   const p = touchPos(e);
   dragEnd = { x: p.x, y: p.y };
-  previewSvg.innerHTML = ''; previewSvg.style.display = 'none';
+  while (previewSvg.firstChild) previewSvg.removeChild(previewSvg.firstChild); previewSvg.style.display = 'none';
   const dx = dragEnd.x - dragStart.x, dy = dragEnd.y - dragStart.y;
   if (Math.sqrt(dx * dx + dy * dy) < 8) return;
   triggerModeB(dragStart, dragEnd);
@@ -1284,7 +1283,7 @@ canvasWrap.addEventListener('mousedown', e => {
   if (e.target.closest('#panel') || e.target.closest('#bottom-left')) return;
   isDragging = true;
   dragStart = canvasPos(e); dragEnd = canvasPos(e);
-  previewSvg.style.display = 'block'; previewSvg.innerHTML = '';
+  previewSvg.style.display = 'block'; while (previewSvg.firstChild) previewSvg.removeChild(previewSvg.firstChild);
 });
 canvasWrap.addEventListener('mousemove', e => {
   if (!isDragging || mode !== 'B') return;
@@ -1293,14 +1292,14 @@ canvasWrap.addEventListener('mousemove', e => {
 canvasWrap.addEventListener('mouseup', e => {
   if (!isDragging || mode !== 'B') return;
   isDragging = false; dragEnd = canvasPos(e);
-  previewSvg.innerHTML = ''; previewSvg.style.display = 'none';
+  while (previewSvg.firstChild) previewSvg.removeChild(previewSvg.firstChild); previewSvg.style.display = 'none';
   const dx = dragEnd.x - dragStart.x, dy = dragEnd.y - dragStart.y;
   if (Math.sqrt(dx * dx + dy * dy) < 8) return;
   triggerModeB(dragStart, dragEnd);
 });
 canvasWrap.addEventListener('mouseleave', () => {
   if (isDragging && mode === 'B') {
-    isDragging = false; previewSvg.innerHTML = ''; previewSvg.style.display = 'none';
+    isDragging = false; while (previewSvg.firstChild) previewSvg.removeChild(previewSvg.firstChild); previewSvg.style.display = 'none';
   }
 });
 canvasWrap.addEventListener('click', e => {
@@ -1355,7 +1354,7 @@ function canvasPos(e) {
 }
 
 function drawPreview(a, b) {
-  previewSvg.innerHTML = '';
+  while (previewSvg.firstChild) previewSvg.removeChild(previewSvg.firstChild);
   const dx = b.x - a.x, dy = b.y - a.y, len = Math.sqrt(dx * dx + dy * dy) || 1;
   const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
   line.setAttribute('x1', a.x - (dx / len) * 2000); line.setAttribute('y1', a.y - (dy / len) * 2000);
@@ -1401,8 +1400,7 @@ function getVoronoiCells(pts, w, h, res = 130) {
 
 // ── BUILD & RENDER (div+svg fragments) ──
 function buildAndRender(vpts) {
-  const parser = new DOMParser();
-  const innerHTML = parser.parseFromString(originalSvgContent, 'image/svg+xml').querySelector('svg').innerHTML;
+  const srcSvg = parsedSvgDoc.querySelector('svg');
   const scale = getScale(); const { offX, offY } = getOff(scale);
   const cW = canvasWrap.clientWidth, cH = canvasWrap.clientHeight;
 
@@ -1472,7 +1470,9 @@ function buildAndRender(vpts) {
       outerG.setAttribute('transform', `translate(${offX},${offY}) scale(${scale})`);
       const cellG = document.createElementNS(ns, 'g');
       cellG.setAttribute('clip-path', `url(#${clipId})`);
-      cellG.innerHTML = innerHTML;
+      Array.from(srcSvg.childNodes).forEach(child => {
+        cellG.appendChild(document.importNode(child, true));
+      });
       outerG.appendChild(cellG);
       svg.appendChild(outerG);
       div.appendChild(svg);
