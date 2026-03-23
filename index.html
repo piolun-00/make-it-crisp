@@ -1201,12 +1201,16 @@ function renderOriginal() {
 
 // ── ARTBOARD POSITION: keep 20px gap above controls ──
 function updateArtboardBottom() {
-  if (window.innerWidth <= 1400) return; // only desktop
+  const artboard = document.getElementById('artboard');
+  if (window.innerWidth <= 1400) {
+    artboard.style.bottom = '';
+    return;
+  }
   const controls = document.getElementById('bottom-controls');
   if (!controls) return;
-  const rect = controls.getBoundingClientRect();
-  const artboard = document.getElementById('artboard');
-  artboard.style.bottom = (window.innerHeight - rect.top + 20) + 'px';
+  const controlsBottom = parseFloat(getComputedStyle(controls).bottom) || 24;
+  const controlsHeight = controls.offsetHeight;
+  artboard.style.bottom = (controlsBottom + controlsHeight + 20) + 'px';
 }
 updateArtboardBottom();
 window.addEventListener('resize', updateArtboardBottom);
