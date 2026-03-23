@@ -1104,17 +1104,17 @@ document.getElementById('fileInput').addEventListener('change', e => {
     if (!svgEl) return;
     sanitizeSvgNode(svgEl);
     originalSvgContent = new XMLSerializer().serializeToString(svgEl);
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(originalSvgContent, 'image/svg+xml');
-    const svgEl = doc.querySelector('svg');
-    const vb = svgEl.getAttribute('viewBox');
+    const parser2 = new DOMParser();
+    const doc2 = parser2.parseFromString(originalSvgContent, 'image/svg+xml');
+    const svgEl2 = doc2.querySelector('svg');
+    const vb = svgEl2.getAttribute('viewBox');
     if (vb) {
       const p = vb.trim().split(/[\s,]+/);
       svgW = parseFloat(p[2]) || 400;
       svgH = parseFloat(p[3]) || 400;
     } else {
-      svgW = parseFloat(svgEl.getAttribute('width')) || 400;
-      svgH = parseFloat(svgEl.getAttribute('height')) || 400;
+      svgW = parseFloat(svgEl2.getAttribute('width')) || 400;
+      svgH = parseFloat(svgEl2.getAttribute('height')) || 400;
     }
     await prepareColorSampling();
     resetState();
