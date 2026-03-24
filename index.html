@@ -1710,6 +1710,7 @@ function createHammerOverlay() {
 
 canvasWrap.addEventListener('mousedown', e => {
   if (!originalSvgContent || mode !== 'A') return;
+  if (videoMode && recordingComplete && !isRecording) return;
   canvasWrap.classList.add('hammer-hit');
   hammerOverlay = createHammerOverlay();
   hammerOverlay.style.left = (e.clientX - 8) + 'px';
@@ -2557,7 +2558,9 @@ function startRecording() {
     mediaRecorder2.start(isMp4Second ? undefined : 100);
   }
 
-  recordFrameLoop();
+  // Delay first frame capture by one RAF tick so the trigger (crush/slice)
+  // that runs right after startRecording() has time to create fragments
+  requestAnimationFrame(() => recordFrameLoop());
 }
 
 function recordFrameLoop() {
