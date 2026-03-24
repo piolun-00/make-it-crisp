@@ -66,16 +66,16 @@
     position: relative;
     width: 100vw; height: 100vh; min-height: 720px;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 20px;
+    gap: 20px;
   }
 
   /* ── KHOREI LOGO ── */
   #logo {
-    position: absolute;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
+    position: relative;
     user-select: none;
     -webkit-user-select: none;
     z-index: 20;
@@ -84,8 +84,8 @@
     align-items: stretch;
     justify-content: space-between;
     gap: 0;
-    width: 144px;
-    height: 72px;
+    width: 100%;
+    height: 100%;
     min-width: 90px;
     min-height: 72px;
     text-decoration: none;
@@ -93,10 +93,13 @@
     transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
                 height 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
-  /* Desktop: compact → hover expands in X and Y */
   #logo:hover {
-    width: 320px;
-    height: 140px;
+    width: 100%;
+    height: 100%;
+  }
+  #logo-wrap:hover #logo {
+    width: 90px;
+    height: 72px;
   }
   .logo-row {
     display: flex;
@@ -130,18 +133,15 @@
 
   /* ── ARTBOARD ── */
   #artboard {
-    position: absolute;
-    top: 112px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(1280px, calc(100% - 40px), calc((100vh - 40px) * 4 / 3));
-    min-width: 560px;
-    bottom: 20px;
+    position: relative;
+    flex: 1 1 0;
+    align-self: stretch;
     min-height: 200px;
+    min-width: 0;
     border: 1px solid var(--artboard-border);
     border-radius: 24px;
     overflow: hidden;
-    background: transparent;
+    background: #eeedea;
     transition: background 0.2s;
   }
   #artboard:hover:not(.has-file) {
@@ -177,10 +177,8 @@
 
   /* ── BOTTOM LEFT BUTTONS ── */
   #bottom-left {
-    position: absolute;
-    left: 40px;
-    bottom: 24px;
-    right: 40px;
+    position: relative;
+    z-index: 5;
     display: flex;
     gap: 8px;
     align-items: center;
@@ -227,24 +225,21 @@
 
   /* ── BOTTOM CONTROLS ── */
   #bottom-controls {
-    position: absolute;
-    bottom: clamp(12px, 2.5vh, 24px);
-    left: 50%;
-    transform: translateX(-50%);
-    width: 560px;
+    position: relative;
+    width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 8px;
     align-items: stretch;
   }
 
   /* Mode bar (top row) */
   #mode-bar {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 8px 12px;
+    flex-wrap: nowrap;
+    gap: 8px;
     position: relative;
     z-index: 2;
   }
@@ -252,16 +247,19 @@
   #mode-buttons {
     display: flex;
     flex: 1;
-    flex-wrap: wrap;
-    gap: 8px 12px;
-    align-items: center;
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+    min-width: 0;
+    flex-wrap: nowrap;
   }
 
   .mode-btn {
     display: flex;
     gap: 4px;
     align-items: center;
-    width: 160px;
+    width: 100%;
+    min-width: 0;
     cursor: pointer;
     border: none;
     background: transparent;
@@ -292,6 +290,7 @@
 
   .mode-btn .mode-label {
     flex: 1;
+    min-width: 116px;
     height: 40px;
     border-radius: 12px;
     background: var(--white);
@@ -333,8 +332,9 @@
   /* Cookie btn (randomize) */
   .cookie-btn {
     position: relative;
-    width: 40px;
-    height: 40px;
+    width: 88px;
+    height: auto;
+    min-height: 88px;
     border-radius: 12px;
     background: var(--white);
     border: 1px solid var(--border);
@@ -520,15 +520,41 @@
     height: 100%;
   }
 
-  /* ── LOGO WRAP (transparent on desktop) ── */
+  /* ── LOGO WRAP ── */
   #logo-wrap {
-    display: contents;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 auto;
+    min-height: 132px;
   }
 
-  /* ── RIGHT PANEL wrapper (transparent on desktop) ── */
+  /* ── RIGHT PANEL ── */
   #right-panel {
-    display: contents;
+    width: 35%;
+    min-width: 280px;
+    max-width: 560px;
+    flex-shrink: 0;
+    align-self: stretch;
+    overflow: visible;
+    position: relative;
   }
+  #right-panel-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: absolute;
+    top: 0; left: -20px; right: -20px; bottom: -20px;
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: 20px;
+    container-type: inline-size;
+    overflow-y: auto;
+    overflow-x: visible;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  #right-panel-inner::-webkit-scrollbar { display: none; }
 
   /* ── COPYRIGHT ── */
   #copyright {
@@ -555,112 +581,313 @@
     color: var(--gray);
   }
 
-  /* ── RESPONSIVE: side-by-side ── */
-  @media (max-width: 1400px) {
-    #app {
-      display: flex;
-      flex-direction: row;
-      align-items: stretch;
-      justify-content: flex-start;
-      padding: 20px;
-      gap: 20px;
-      height: 100vh;
-      min-height: 0;
-    }
+  /* ── VIDEO TOGGLE — matches cookie-btn sizing ── */
+  .video-toggle-btn {
+    position: relative;
+    width: 88px;
+    height: auto;
+    min-height: 88px;
+    border-radius: 12px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 2px;
+    flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  }
+  .video-toggle-btn:hover,
+  .video-toggle-btn.active {
+    background: var(--accent);
+    border-color: var(--accent-border);
+  }
+  .video-toggle-btn:active { transform: scale(0.96); }
 
-    /* Logo wrap: takes available vertical space, centers logo inside */
-    #logo-wrap {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex: 1 1 auto;
-      min-height: 72px;
-    }
+  /* ── VIDEO PANEL CONTROLS ── */
+  #panel { container-type: inline-size; }
 
-    /* Logo: fills wrap by default, contracts on hover */
-    #logo {
-      position: relative;
-      top: auto;
-      left: auto;
-      transform: none;
-      width: 100%;
-      height: 100%;
-      min-height: auto;
-      flex-shrink: 0;
-    }
-    /* Hover on WRAP contracts logo (wrap keeps stable size, no pulsing) */
-    #logo:hover {
-      width: 100%;
-      height: 100%;
-    }
-    #logo-wrap:hover #logo {
-      width: 90px;
-      height: 72px;
-    }
+  .video-controls-row {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+  }
+  .video-control-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    min-width: 0;
+  }
 
-    /* Artboard: fills left side, 100% viewport height */
-    #artboard {
-      position: relative;
-      top: auto;
-      left: auto;
-      bottom: auto;
-      transform: none;
-      width: auto;
-      height: auto;
-      max-height: none;
-      min-height: 0;
-      min-width: 0;
-      flex: 1 1 0;
-      align-self: stretch;
-    }
-
-    /* Right sidebar: 35%, same height as artboard */
-    #right-panel {
-      display: flex !important;
+  /* Stack vertically when panel is narrow */
+  @container (max-width: 400px) {
+    .video-controls-row {
       flex-direction: column;
-      width: 35%;
-      min-width: 280px;
+      gap: 16px;
+    }
+    /* Compact mode-bar: all buttons in a row, fill space, no labels */
+    #mode-bar {
+      gap: 8px;
+      justify-content: stretch;
+    }
+    #mode-buttons {
+      flex-direction: row;
+      gap: 8px;
+      flex: 1 1 0;
+    }
+    .mode-btn {
+      flex: 1 1 0;
+      width: auto;
+    }
+    .mode-btn .mode-label {
+      display: none;
+    }
+    .mode-btn .mode-icon {
+      width: 48px;
+      height: 48px;
+    }
+    .mode-btn {
+      flex: 0 0 auto;
+    }
+    .video-toggle-btn {
+      flex: 0 0 auto;
+      width: 48px;
+      height: 48px;
+      min-height: 48px;
+    }
+    .cookie-btn {
+      flex: 0 0 auto;
+      width: 48px;
+      height: 48px;
+      min-height: 48px;
+    }
+  }
+
+  .pill-buttons {
+    display: flex;
+    gap: 8px;
+  }
+  .pill-btn {
+    flex: 1;
+    min-width: 36px;
+    height: 24px;
+    border-radius: 12px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--dark);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 4px;
+    position: relative;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .pill-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0px 1px 2px rgba(0,0,0,0.25);
+    pointer-events: none;
+  }
+  .pill-btn.active {
+    background: var(--accent);
+    border-color: var(--accent-border);
+  }
+  .pill-btn.active::after {
+    box-shadow: inset 0px 1px 2px rgba(0,0,0,0.45);
+  }
+  .pill-btn:hover:not(.active) {
+    background: #f0f0f0;
+  }
+
+  /* Color inputs */
+  .color-input-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .color-swatch {
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
+    border: 1px solid #c4c4c4;
+    flex-shrink: 0;
+    position: relative;
+    cursor: pointer;
+  }
+  .color-swatch::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0px 1px 2px rgba(0,0,0,0.45);
+    pointer-events: none;
+  }
+  .hex-input-wrap {
+    flex: 1;
+    min-width: 60px;
+    height: 24px;
+    border-radius: 12px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .hex-input-wrap::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0px 1px 2px rgba(0,0,0,0.25);
+    pointer-events: none;
+  }
+  .hex-input {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: transparent;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--gray);
+    text-align: center;
+    outline: none;
+    border-radius: 12px;
+    padding: 0 8px;
+  }
+
+  .color-presets {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+    margin-left: 4px;
+  }
+  .color-preset-btn {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid #c4c4c4;
+    cursor: pointer;
+    padding: 0;
+    position: relative;
+  }
+  .color-preset-btn::after {
+    display: none;
+  }
+
+  /* ── VIDEO ARTBOARD ── */
+  #video-artboard {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #e4e2df;
+    border: 1px solid #cdcbc9;
+    border-radius: 48px;
+    overflow: hidden;
+    z-index: 5;
+    transition: width 0.3s, height 0.3s;
+  }
+  #record-box {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    /* No border-radius — this is the capture area */
+  }
+
+  /* ── VIDEO CONTROLS OVERLAY ── */
+  #video-controls-overlay {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 15;
+  }
+  /* Buttons dim when video mode off */
+  .video-overlay-btn {
+    transition: opacity 0.2s;
+  }
+  #video-controls-overlay.video-off .video-overlay-btn {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+  /* Timer hidden when video mode off */
+  #video-timer {
+    transition: opacity 0.2s;
+  }
+  #video-controls-overlay.video-off #video-timer {
+    opacity: 0;
+    pointer-events: none;
+  }
+  #rec-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .rec-dot {
+    width: 16px;
+    height: 16px;
+    opacity: 0.4;
+    transition: opacity 0.2s;
+  }
+  #video-timer {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--gray);
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .timer-divider {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Video inactive state — dim Duration/Ratio when video off, dim colors when no file */
+  #panel-video {
+    padding-top: 8px;
+  }
+  #panel-video .video-controls-row {
+    transition: opacity 0.2s;
+  }
+  #panel-video.video-inactive .video-controls-row:first-child {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+  /* Dim bg color when video mode is off (only logo color active in normal mode) */
+  #panel-video.video-inactive .bg-color-group {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+  #panel-video.no-file .video-controls-row:last-child {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  /* ── RESPONSIVE: narrower right panel ── */
+  @media (max-width: 1400px) {
+    #right-panel {
       max-width: 420px;
-      flex-shrink: 0;
-      gap: 20px;
-      justify-content: flex-end;
-      align-self: stretch;
-    }
-
-    /* Bottom controls */
-    #bottom-controls {
-      position: relative;
-      bottom: auto;
-      left: auto;
-      transform: none;
-      width: 100%;
-    }
-
-    /* Nav buttons */
-    #bottom-left {
-      position: relative;
-      left: auto;
-      bottom: auto;
-      right: auto;
-      justify-content: flex-start;
-    }
-
-    #mode-bar { align-items: stretch; gap: 8px; flex-wrap: nowrap; }
-    #mode-buttons { flex-direction: column; gap: 8px; flex: 1; min-width: 0; flex-wrap: nowrap; }
-    .mode-btn { width: 100%; min-width: 0; }
-    .cookie-btn { width: 88px; height: auto; min-height: 88px; flex-shrink: 0; }
-    .cookie-btn img { width: 24px; height: 24px; }
-    .cookie-btn .cookie-tooltip { display: none; }
-    .nav-btn .nav-tooltip { display: none; }
-
-    #panel { padding: 24px 24px 40px; }
-
-    /* Right panel — no clipping shadows */
-    #right-panel { overflow: visible; }
-
-    #copyright {
-      text-align: left;
-      margin-left: auto;
     }
   }
 
@@ -714,7 +941,8 @@
     }
 
     /* Flatten right-panel so children participate in app flex order */
-    #right-panel {
+    #right-panel,
+    #right-panel-inner {
       display: contents !important;
     }
 
@@ -725,11 +953,10 @@
       left: auto;
       transform: none;
       width: 100%;
-      height: auto;
+      height: 60svh;
       min-height: 200px;
       min-width: 0;
       bottom: auto;
-      aspect-ratio: 4 / 3;
       flex: 0 0 auto;
       overflow: visible;
     }
@@ -755,12 +982,15 @@
     #mode-bar { align-items: stretch; gap: 8px; flex-wrap: nowrap; }
     #mode-buttons { flex-direction: column; gap: 8px; flex: 1; min-width: 0; flex-wrap: nowrap; }
     .mode-btn { width: 100%; min-width: 0; }
-    .cookie-btn { width: 88px; height: auto; min-height: 88px; flex-shrink: 0; }
-    .cookie-btn img { width: 24px; height: 24px; }
+    .cookie-btn, .video-toggle-btn { width: 88px; height: auto; min-height: 88px; flex-shrink: 0; }
+    .cookie-btn img, .video-toggle-btn img { width: 24px; height: 24px; }
 
     #panel { padding: 24px 24px 40px; }
+    #video-artboard { border-radius: 24px; }
   }
+  #canvas-wrap.cursor-replay { cursor: url('assets/Replay.png') 8 24, pointer; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
 </head>
 <body>
 <div id="app">
@@ -778,10 +1008,27 @@
       </button>
       <span id="upload-prompt-label">Upload an *.svg file</span>
     </div>
+    <div id="video-artboard" style="display:none;">
+      <div id="record-box"></div>
+    </div>
+    <div id="video-controls-overlay" class="video-off">
+      <button class="nav-btn video-overlay-btn" id="replayBtn" title="Replay">
+        <img src="assets/Repeat.svg" alt="Replay">
+      </button>
+      <div id="rec-badge" class="video-overlay-btn">
+        <img src="assets/Record dot.svg" alt="REC" class="rec-dot">
+      </div>
+      <div id="video-timer">
+        <span id="timer-current">0.00 s</span>
+        <span class="timer-divider">/</span>
+        <span id="timer-total">1.00 s</span>
+      </div>
+    </div>
   </div>
 
   <!-- RIGHT PANEL (used in responsive layout) -->
   <div id="right-panel">
+  <div id="right-panel-inner">
 
   <!-- KHOREI LOGO -->
   <div id="logo-wrap">
@@ -808,6 +1055,9 @@
   <div id="bottom-controls">
     <!-- Mode bar -->
     <div id="mode-bar">
+      <button class="video-toggle-btn" id="videoToggleBtn" title="Video mode">
+        <img src="assets/Record.png" alt="Video" style="width:16px;height:16px;">
+      </button>
       <div id="mode-buttons">
         <button class="mode-btn active" id="btnA">
           <div class="mode-icon"><img src="assets/Hamer.png" alt="Hammer"></div>
@@ -818,9 +1068,8 @@
           <div class="mode-label">Slice it</div>
         </button>
       </div>
-      <button class="cookie-btn" id="randomBtn" title="Randomize">
+      <button class="cookie-btn" id="randomBtn">
         <img src="assets/Crisp.png" alt="Crisp">
-        <span class="cookie-tooltip">Randomize</span>
       </button>
     </div>
 
@@ -869,6 +1118,63 @@
           </div>
         </div>
       </div>
+
+      <!-- Panel Video -->
+      <div id="panel-video" class="slider-group video-inactive no-file">
+        <div class="video-controls-row">
+          <div class="video-control-group">
+            <span class="slider-label">Duration</span>
+            <div class="pill-buttons">
+              <button class="pill-btn active" data-duration="1">1s</button>
+              <button class="pill-btn" data-duration="3">3s</button>
+              <button class="pill-btn" data-duration="5">5s</button>
+            </div>
+          </div>
+          <div class="video-control-group">
+            <span class="slider-label">Ratio</span>
+            <div class="pill-buttons">
+              <button class="pill-btn active" data-ratio="1:1">1:1</button>
+              <button class="pill-btn" data-ratio="4:5">4:5</button>
+              <button class="pill-btn" data-ratio="9:16">9:16</button>
+            </div>
+          </div>
+        </div>
+        <div class="video-controls-row">
+          <div class="video-control-group bg-color-group">
+            <span class="slider-label">Background color</span>
+            <div class="color-input-row">
+              <div class="color-swatch" id="bgColorSwatch" style="background: #ffffff;"></div>
+              <div class="hex-input-wrap">
+                <input type="text" class="hex-input" id="bgColorInput" value="White" placeholder="#000000">
+              </div>
+            </div>
+            <div class="color-presets" id="bgPresets">
+              <button class="color-preset-btn" data-color="transparent" style="background: transparent; background-image: url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22><rect width=%228%22 height=%228%22 fill=%22%23ccc%22/><rect x=%228%22 y=%228%22 width=%228%22 height=%228%22 fill=%22%23ccc%22/></svg>');"></button>
+              <button class="color-preset-btn" data-color="#000000" style="background:#000000;"></button>
+              <button class="color-preset-btn" data-color="#d7d7d7" style="background:#d7d7d7;"></button>
+              <button class="color-preset-btn" data-color="#ffffff" style="background:#ffffff;"></button>
+              <button class="color-preset-btn" data-color="#e31c1c" style="background:#e31c1c;"></button>
+              <button class="color-preset-btn" data-color="#eaf73c" style="background:#eaf73c;"></button>
+            </div>
+          </div>
+          <div class="video-control-group">
+            <span class="slider-label">Logo color</span>
+            <div class="color-input-row">
+              <div class="color-swatch" id="logoColorSwatch" style="background: #000000;"></div>
+              <div class="hex-input-wrap">
+                <input type="text" class="hex-input" id="logoColorInput" value="Black" placeholder="#000000">
+              </div>
+            </div>
+            <div class="color-presets" id="logoPresets">
+              <button class="color-preset-btn" data-color="#000000" style="background:#000000;"></button>
+              <button class="color-preset-btn" data-color="#d7d7d7" style="background:#d7d7d7;"></button>
+              <button class="color-preset-btn" data-color="#ffffff" style="background:#ffffff;"></button>
+              <button class="color-preset-btn" data-color="#e31c1c" style="background:#e31c1c;"></button>
+              <button class="color-preset-btn" data-color="#eaf73c" style="background:#eaf73c;"></button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -876,15 +1182,12 @@
   <div id="bottom-left">
     <button class="nav-btn" id="uploadBtn" title="Upload file">
       <img src="assets/upload_file.svg" alt="Upload">
-      <span class="nav-tooltip">Upload *.svg</span>
     </button>
     <button class="nav-btn" id="resetBtn" title="Reset">
       <img src="assets/reset_image.svg" alt="Reset">
-      <span class="nav-tooltip">Reset</span>
     </button>
     <button class="nav-btn" id="downloadBtn" title="Download">
       <img src="assets/arrow_circle_down.svg" alt="Download">
-      <span class="nav-tooltip">Download</span>
     </button>
     <div id="copyright">
       Make it Crisp! — A&nbsp;destructive SVG&nbsp;tool<br>
@@ -892,6 +1195,7 @@
     </div>
   </div>
 
+  </div><!-- /right-panel-inner -->
   </div><!-- /right-panel -->
 
   <input type="file" accept=".svg" id="fileInput">
@@ -1056,6 +1360,42 @@ function setMode(m) {
   canvasWrap.classList.toggle('cursor-knife', m === 'B');
 
   if (originalSvgContent) resetState();
+  savePrefs();
+}
+
+// ── PERSIST PREFERENCES ──
+function savePrefs() {
+  localStorage.setItem('crisp_prefs', JSON.stringify({
+    mode, videoMode, videoDuration, videoRatio
+  }));
+}
+
+function restorePrefs() {
+  try {
+    const raw = localStorage.getItem('crisp_prefs');
+    if (!raw) return;
+    const p = JSON.parse(raw);
+
+    // Mode (Crush / Slice)
+    if (p.mode === 'A' || p.mode === 'B') setMode(p.mode);
+
+    // Video mode
+    if (p.videoMode === true) videoToggleBtn.click();
+
+    // Duration
+    if ([1, 3, 5].includes(p.videoDuration)) {
+      const btn = document.querySelector(`[data-duration="${p.videoDuration}"]`);
+      if (btn) btn.click();
+    }
+
+    // Ratio
+    if (['1:1', '4:5', '9:16'].includes(p.videoRatio)) {
+      const btn = document.querySelector(`[data-ratio="${p.videoRatio}"]`);
+      if (btn) btn.click();
+    }
+
+    // Colors always reset to defaults (White / Black) on refresh
+  } catch (e) { /* ignore corrupt data */ }
 }
 
 // ── FILE UPLOAD ──
@@ -1089,6 +1429,10 @@ document.getElementById('fileInput').addEventListener('change', e => {
     uploadPrompt.classList.add('hidden');
     document.getElementById('artboard').classList.add('has-file');
     randomBtn.classList.remove('disabled');
+    panelVideo.classList.remove('no-file');
+    // Apply default colors immediately
+    applyBgColor();
+    applyLogoColor();
   };
   reader.readAsText(file);
   e.target.value = '';
@@ -1096,6 +1440,8 @@ document.getElementById('fileInput').addEventListener('change', e => {
 
 // ── RESET ──
 document.getElementById('resetBtn').addEventListener('click', () => {
+  if (isRecording) stopRecording();
+  cleanupRecording();
   if (originalSvgContent) resetState();
 });
 
@@ -1116,6 +1462,11 @@ function resetState() {
 
 // ── DOWNLOAD ──
 document.getElementById('downloadBtn').addEventListener('click', () => {
+  // Video mode: download recorded video
+  if (videoMode && recordedVideoBlob) {
+    downloadRecordedVideo();
+    return;
+  }
   if (!originalSvgContent) return;
   if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
 
@@ -1155,6 +1506,15 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
 // ── RANDOM (cookie) ──
 document.getElementById('randomBtn').addEventListener('click', () => {
   if (!originalSvgContent) return;
+  if (videoMode && recordingComplete && !isRecording) {
+    document.getElementById('replayBtn').click();
+    return;
+  }
+  if (videoMode && !isRecording) {
+    cleanupRecording();
+    resetState();
+    startRecording();
+  }
   // Random click somewhere on the SVG
   const rx = rand(svgW * 0.15, svgW * 0.85);
   const ry = rand(svgH * 0.15, svgH * 0.85);
@@ -1197,23 +1557,9 @@ function renderOriginal() {
     g.appendChild(document.importNode(child, true));
   });
   outputSvg.appendChild(g);
+  // Re-apply custom logo color after rebuild from original SVG
+  applyLogoColor();
 }
-
-// ── ARTBOARD POSITION: keep 20px gap above controls ──
-function updateArtboardBottom() {
-  const artboard = document.getElementById('artboard');
-  if (window.innerWidth <= 1400) {
-    artboard.style.bottom = '';
-    return;
-  }
-  const controls = document.getElementById('bottom-controls');
-  if (!controls) return;
-  const controlsBottom = parseFloat(getComputedStyle(controls).bottom) || 24;
-  const controlsHeight = controls.offsetHeight;
-  artboard.style.bottom = (controlsBottom + controlsHeight + 20) + 'px';
-}
-requestAnimationFrame(updateArtboardBottom);
-window.addEventListener('resize', updateArtboardBottom);
 
 // ── RESIZE: re-center SVG on window resize ──
 let resizeTimer = null;
@@ -1265,6 +1611,15 @@ canvasWrap.addEventListener('touchend', e => {
   while (previewSvg.firstChild) previewSvg.removeChild(previewSvg.firstChild); previewSvg.style.display = 'none';
   const dx = dragEnd.x - dragStart.x, dy = dragEnd.y - dragStart.y;
   if (Math.sqrt(dx * dx + dy * dy) < 8) return;
+  if (videoMode && recordingComplete && !isRecording) {
+    document.getElementById('replayBtn').click();
+    return;
+  }
+  if (videoMode && !isRecording) {
+    cleanupRecording();
+    resetState();
+    startRecording();
+  }
   triggerModeB(dragStart, dragEnd);
 });
 
@@ -1272,6 +1627,15 @@ canvasWrap.addEventListener('touchend', e => {
 canvasWrap.addEventListener('touchstart', e => {
   if (!originalSvgContent || mode !== 'A') return;
   e.preventDefault();
+  if (videoMode && recordingComplete && !isRecording) {
+    document.getElementById('replayBtn').click();
+    return;
+  }
+  if (videoMode && !isRecording) {
+    cleanupRecording();
+    resetState();
+    startRecording();
+  }
   const p = touchPos(e);
   const scale = getScale(); const { offX, offY } = getOff(scale);
   triggerModeA((p.x - offX) / scale, (p.y - offY) / scale);
@@ -1295,6 +1659,15 @@ canvasWrap.addEventListener('mouseup', e => {
   while (previewSvg.firstChild) previewSvg.removeChild(previewSvg.firstChild); previewSvg.style.display = 'none';
   const dx = dragEnd.x - dragStart.x, dy = dragEnd.y - dragStart.y;
   if (Math.sqrt(dx * dx + dy * dy) < 8) return;
+  if (videoMode && recordingComplete && !isRecording) {
+    document.getElementById('replayBtn').click();
+    return;
+  }
+  if (videoMode && !isRecording) {
+    cleanupRecording();
+    resetState();
+    startRecording();
+  }
   triggerModeB(dragStart, dragEnd);
 });
 canvasWrap.addEventListener('mouseleave', () => {
@@ -1304,6 +1677,15 @@ canvasWrap.addEventListener('mouseleave', () => {
 });
 canvasWrap.addEventListener('click', e => {
   if (!originalSvgContent || mode !== 'A') return;
+  if (videoMode && recordingComplete && !isRecording) {
+    document.getElementById('replayBtn').click();
+    return;
+  }
+  if (videoMode && !isRecording) {
+    cleanupRecording();
+    resetState();
+    startRecording();
+  }
   const scale = getScale(); const { offX, offY } = getOff(scale);
   const pos = canvasPos(e);
   triggerModeA((pos.x - offX) / scale, (pos.y - offY) / scale);
@@ -1493,6 +1875,8 @@ function buildAndRender(vpts) {
   });
 
   applyTransforms();
+  // Re-apply custom logo color after rebuild from original SVG
+  applyLogoColor();
 }
 
 function applyTransforms() {
@@ -1654,6 +2038,771 @@ function animate() {
   if (anyMoving) rafId = requestAnimationFrame(animate);
   else rafId = null;
 }
+
+// ── DRAG & DROP ──
+const artboard = document.getElementById('artboard');
+artboard.addEventListener('dragover', e => {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'copy';
+  if (!artboard.classList.contains('has-file')) {
+    artboard.style.background = '#eeedea';
+  }
+});
+artboard.addEventListener('dragleave', e => {
+  if (!artboard.classList.contains('has-file')) {
+    artboard.style.background = '';
+  }
+});
+artboard.addEventListener('drop', e => {
+  e.preventDefault();
+  artboard.style.background = '';
+  const file = e.dataTransfer.files[0];
+  if (!file || !file.name.toLowerCase().endsWith('.svg')) return;
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    originalSvgContent = ev.target.result;
+    parsedSvgDoc = new DOMParser().parseFromString(originalSvgContent, 'image/svg+xml');
+    const svgEl = parsedSvgDoc.querySelector('svg');
+    if (!svgEl) return;
+    const vb = svgEl.getAttribute('viewBox');
+    if (vb) {
+      const p = vb.trim().split(/[\s,]+/);
+      svgW = parseFloat(p[2]) || 400;
+      svgH = parseFloat(p[3]) || 400;
+    } else {
+      svgW = parseFloat(svgEl.getAttribute('width')) || 400;
+      svgH = parseFloat(svgEl.getAttribute('height')) || 400;
+    }
+    await prepareColorSampling();
+    resetState();
+    uploadPrompt.classList.add('hidden');
+    artboard.classList.add('has-file');
+    randomBtn.classList.remove('disabled');
+    panelVideo.classList.remove('no-file');
+    // Apply default colors immediately
+    applyBgColor();
+    applyLogoColor();
+  };
+  reader.readAsText(file);
+});
+
+// ── VIDEO MODE ──
+let videoMode = false;
+let videoDuration = 1;
+let videoRatio = '1:1';
+let videoBgColor = '#ffffff';
+let videoLogoColor = '#000000';
+
+const videoToggleBtn = document.getElementById('videoToggleBtn');
+const panelVideo = document.getElementById('panel-video');
+const videoArtboard = document.getElementById('video-artboard');
+const videoOverlay = document.getElementById('video-controls-overlay');
+
+const recordBox = document.getElementById('record-box');
+
+videoToggleBtn.addEventListener('click', () => {
+  // If recording is complete, clean up before switching mode
+  if (recordingComplete) {
+    cleanupRecording();
+    const existingCanvas = recordBox.querySelector('.replay-canvas');
+    const existingVideo = recordBox.querySelector('.replay-video');
+    if (existingCanvas) existingCanvas.remove();
+    if (existingVideo) existingVideo.remove();
+    resetState();
+  }
+  videoMode = !videoMode;
+  videoToggleBtn.classList.toggle('active', videoMode);
+  panelVideo.classList.toggle('video-inactive', !videoMode);
+  videoArtboard.style.display = videoMode ? 'block' : 'none';
+  videoOverlay.classList.toggle('video-off', !videoMode);
+
+  // Move canvas-wrap into record-box (video ON) or back to artboard (video OFF)
+  if (videoMode) {
+    recordBox.appendChild(canvasWrap);
+    if (originalSvgContent) applyBgColor();
+  } else {
+    videoArtboard.style.background = '#e4e2df';
+    videoArtboard.style.backgroundImage = 'none';
+    artboard.insertBefore(canvasWrap, artboard.firstChild);
+  }
+
+  updateVideoArtboardSize();
+
+  // Reset SVG to original state when switching modes
+  if (originalSvgContent) {
+    setTimeout(() => {
+      resetState();
+    }, 50);
+  }
+  savePrefs();
+});
+
+// Duration buttons
+document.querySelectorAll('[data-duration]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-duration]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    videoDuration = parseInt(btn.dataset.duration);
+    document.getElementById('timer-total').textContent = videoDuration.toFixed(2) + ' s';
+    savePrefs();
+  });
+});
+
+// Ratio buttons
+document.querySelectorAll('[data-ratio]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-ratio]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    videoRatio = btn.dataset.ratio;
+    updateVideoArtboardSize();
+    savePrefs();
+  });
+});
+
+// Update video artboard size based on ratio
+function updateVideoArtboardSize() {
+  if (!videoMode) return;
+  const artboardRect = artboard.getBoundingClientRect();
+  const maxH = artboardRect.height * 0.7;
+  const maxW = artboardRect.width - 80;
+
+  let ratioW, ratioH;
+  switch (videoRatio) {
+    case '1:1': ratioW = 1; ratioH = 1; break;
+    case '4:5': ratioW = 4; ratioH = 5; break;
+    case '9:16': ratioW = 9; ratioH = 16; break;
+    default: ratioW = 1; ratioH = 1;
+  }
+
+  let w, h;
+  if (maxW / ratioW < maxH / ratioH) {
+    w = maxW;
+    h = maxW * (ratioH / ratioW);
+  } else {
+    h = maxH;
+    w = maxH * (ratioW / ratioH);
+  }
+
+  videoArtboard.style.width = w + 'px';
+  videoArtboard.style.height = h + 'px';
+
+  // Re-render SVG to fit new record-box size (wait for CSS transition 300ms)
+  if (originalSvgContent) {
+    const reRender = () => {
+      if (voronoiPointsA.length > 0 && mode === 'A') {
+        buildAndRender(voronoiPointsA);
+      } else if (allBreakPts.length > 0 && mode === 'B') {
+        buildAndRender(allBreakPts);
+      } else {
+        renderOriginal();
+      }
+    };
+    // Render immediately for snappy feel, then again after transition ends
+    setTimeout(reRender, 20);
+    setTimeout(reRender, 350);
+  }
+}
+
+// Color inputs
+const bgColorInput = document.getElementById('bgColorInput');
+const bgColorSwatch = document.getElementById('bgColorSwatch');
+const logoColorInput = document.getElementById('logoColorInput');
+const logoColorSwatch = document.getElementById('logoColorSwatch');
+
+// Color keyword resolver
+function resolveColorKeyword(val) {
+  const lower = val.toLowerCase().trim();
+  const keywords = {
+    'transparent': 'transparent',
+    'white': '#ffffff',
+    'black': '#000000',
+    'red': '#e31c1c',
+    'green': '#eaf73c',
+    'gray': '#d7d7d7',
+    'grey': '#d7d7d7',
+  };
+  if (keywords[lower]) return keywords[lower];
+  // Accept hex with or without #, 3 or 6 digits
+  const hex = lower.replace(/^#/, '');
+  if (/^[0-9a-f]{6}$/.test(hex)) return '#' + hex;
+  if (/^[0-9a-f]{3}$/.test(hex)) return '#' + hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+  return null;
+}
+
+const checkerBg = "url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22><rect width=%2212%22 height=%2212%22 fill=%22%23ccc%22/><rect x=%2212%22 y=%2212%22 width=%2212%22 height=%2212%22 fill=%22%23ccc%22/></svg>')";
+
+function applyBgColor() {
+  if (!originalSvgContent || !videoMode) return; // Only applies in video mode with file loaded
+  if (videoBgColor === 'transparent') {
+    videoArtboard.style.background = 'transparent';
+    videoArtboard.style.backgroundImage = checkerBg;
+  } else {
+    videoArtboard.style.background = videoBgColor;
+    videoArtboard.style.backgroundImage = 'none';
+  }
+}
+
+function applyLogoColor() {
+  // Recolor all SVG paths/shapes in the outputSvg
+  const shapes = outputSvg.querySelectorAll('path, circle, rect, ellipse, polygon, polyline, line, text');
+  shapes.forEach(el => {
+    const fill = el.getAttribute('fill');
+    if (fill && fill !== 'none') el.setAttribute('fill', videoLogoColor);
+    const stroke = el.getAttribute('stroke');
+    if (stroke && stroke !== 'none') el.setAttribute('stroke', videoLogoColor);
+  });
+  // Also recolor fragment divs if crushed
+  document.querySelectorAll('.fragment-div svg path, .fragment-div svg circle, .fragment-div svg rect, .fragment-div svg ellipse, .fragment-div svg polygon, .fragment-div svg polyline, .fragment-div svg line, .fragment-div svg text').forEach(el => {
+    const fill = el.getAttribute('fill');
+    if (fill && fill !== 'none') el.setAttribute('fill', videoLogoColor);
+    const stroke = el.getAttribute('stroke');
+    if (stroke && stroke !== 'none') el.setAttribute('stroke', videoLogoColor);
+  });
+}
+
+// Map hex back to keyword name for display
+const colorDisplayName = {
+  'transparent': 'Transparent',
+  '#ffffff': 'White',
+  '#000000': 'Black',
+  '#e31c1c': 'Red',
+  '#eaf73c': 'Green',
+  '#d7d7d7': 'Gray',
+};
+
+function handleBgColorChange(setInputValue) {
+  const val = bgColorInput.value.trim();
+  const resolved = resolveColorKeyword(val);
+  if (resolved === 'transparent') {
+    videoBgColor = 'transparent';
+    bgColorSwatch.style.background = 'transparent';
+    bgColorSwatch.style.backgroundImage = checkerBg;
+    if (setInputValue) bgColorInput.value = colorDisplayName[resolved] || resolved;
+  } else if (resolved) {
+    videoBgColor = resolved;
+    bgColorSwatch.style.background = resolved;
+    bgColorSwatch.style.backgroundImage = 'none';
+    if (setInputValue) bgColorInput.value = colorDisplayName[resolved] || resolved;
+  }
+  applyBgColor();
+  savePrefs();
+}
+
+function handleLogoColorChange(setInputValue) {
+  const val = logoColorInput.value.trim();
+  const resolved = resolveColorKeyword(val);
+  if (resolved && resolved !== 'transparent') {
+    videoLogoColor = resolved;
+    logoColorSwatch.style.background = resolved;
+    if (setInputValue) logoColorInput.value = colorDisplayName[resolved] || resolved;
+    applyLogoColor();
+    savePrefs();
+  }
+}
+
+// Select all text on focus for easy replacement
+bgColorInput.addEventListener('focus', () => bgColorInput.select());
+logoColorInput.addEventListener('focus', () => logoColorInput.select());
+
+// Real-time updates as user types (input) + keyword resolve on blur/enter (change)
+bgColorInput.addEventListener('input', () => handleBgColorChange(false));
+bgColorInput.addEventListener('change', () => handleBgColorChange(true));
+logoColorInput.addEventListener('input', () => handleLogoColorChange(false));
+logoColorInput.addEventListener('change', () => handleLogoColorChange(true));
+
+// Color preset buttons
+document.getElementById('bgPresets').addEventListener('click', e => {
+  const btn = e.target.closest('.color-preset-btn');
+  if (!btn) return;
+  const color = btn.dataset.color;
+  bgColorInput.value = colorDisplayName[color] || color;
+  handleBgColorChange(true);
+});
+document.getElementById('logoPresets').addEventListener('click', e => {
+  const btn = e.target.closest('.color-preset-btn');
+  if (!btn) return;
+  const color = btn.dataset.color;
+  if (color === 'transparent') return;
+  logoColorInput.value = colorDisplayName[color] || color;
+  handleLogoColorChange(true);
+});
+
+// Resize update
+window.addEventListener('resize', () => {
+  if (videoMode) updateVideoArtboardSize();
+});
+
+// ── VIDEO RECORDING ENGINE ──
+let isRecording = false;
+let recordingComplete = false;
+let recordingStartTime = 0;
+let exportCanvas = null;
+let exportCtx = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordedVideoBlob = null;
+let recordedVideoUrl = null;
+let frameRendering = false;
+let exportCanvas2 = null;
+let exportCtx2 = null;
+let mediaRecorder2 = null;
+let recordedChunks2 = [];
+let recordedVideoBlob2 = null;
+let exportContrastBg = '#ffffff';
+let exportAlphaMode = false;
+let blobsReady = null;
+
+function isLogoBright(hex) {
+  if (!hex || hex === 'transparent') return false;
+  const c = hex.replace('#', '');
+  const r = parseInt(c.substring(0, 2), 16) || 0;
+  const g = parseInt(c.substring(2, 4), 16) || 0;
+  const b = parseInt(c.substring(4, 6), 16) || 0;
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) > 128;
+}
+
+function getExportDimensions() {
+  const w = 1080;
+  let h;
+  switch (videoRatio) {
+    case '4:5': h = 1350; break;
+    case '9:16': h = 1920; break;
+    default: h = 1080;
+  }
+  return { w, h };
+}
+
+function getExportFilename(ext) {
+  const ratio = videoRatio.replace(':', '-');
+  const svgEl = parsedSvgDoc ? parsedSvgDoc.querySelector('svg') : null;
+  let name = 'output';
+  if (originalSvgContent) {
+    const match = originalSvgContent.match(/<title[^>]*>([^<]+)<\/title>/i);
+    if (match) name = match[1].trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+  }
+  return `crisp_${ratio}-${name}.${ext}`;
+}
+
+function serializeCurrentFrame(exportW, exportH) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const cW = canvasWrap.clientWidth, cH = canvasWrap.clientHeight;
+
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('xmlns', ns);
+  svg.setAttribute('width', exportW);
+  svg.setAttribute('height', exportH);
+  svg.setAttribute('viewBox', `0 0 ${cW} ${cH}`);
+
+  if (particles.length === 0) {
+    Array.from(outputSvg.childNodes).forEach(child => {
+      svg.appendChild(document.importNode(child, true));
+    });
+  } else {
+    particles.forEach(p => {
+      const innerSvg = p.el.querySelector('svg');
+      if (!innerSvg) return;
+      const g = document.createElementNS(ns, 'g');
+      const tx = p.px - p.screenCx;
+      const ty = p.py - p.screenCy;
+      g.setAttribute('transform', `translate(${tx},${ty}) rotate(${p.rot},${p.screenCx},${p.screenCy})`);
+      Array.from(innerSvg.childNodes).forEach(child => {
+        g.appendChild(document.importNode(child, true));
+      });
+      svg.appendChild(g);
+    });
+  }
+
+  return new XMLSerializer().serializeToString(svg);
+}
+
+function renderExportFrame(callback) {
+  if (!exportCanvas) { if (callback) callback(); return; }
+
+  const { w, h } = getExportDimensions();
+  const svgStr = serializeCurrentFrame(w, h);
+  const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+
+  const img = new Image();
+  img.onload = () => {
+    // Main canvas
+    if (exportAlphaMode) {
+      exportCtx.clearRect(0, 0, w, h);
+    } else if (videoBgColor === 'transparent') {
+      exportCtx.fillStyle = exportContrastBg;
+      exportCtx.fillRect(0, 0, w, h);
+    } else {
+      exportCtx.fillStyle = videoBgColor;
+      exportCtx.fillRect(0, 0, w, h);
+    }
+    exportCtx.drawImage(img, 0, 0, w, h);
+
+    // Contrast bg canvas for transparent mode (MP4)
+    if (exportCtx2) {
+      exportCtx2.fillStyle = exportContrastBg;
+      exportCtx2.fillRect(0, 0, w, h);
+      exportCtx2.drawImage(img, 0, 0, w, h);
+    }
+
+    if (callback) callback();
+  };
+  img.onerror = () => {
+    if (callback) callback();
+  };
+  img.src = url;
+}
+
+function startRecording() {
+  if (isRecording || !originalSvgContent || !videoMode) return;
+  if (typeof MediaRecorder === 'undefined') {
+    alert('Video recording is not supported in this browser.');
+    return;
+  }
+
+  const { w, h } = getExportDimensions();
+  const isTransparent = videoBgColor === 'transparent';
+
+  recordedChunks = [];
+
+  // Detect best codecs
+  const webmVP9 = 'video/webm;codecs=vp9';
+  const webmVP8 = 'video/webm;codecs=vp8';
+  const webm = 'video/webm';
+  const mp4 = 'video/mp4';
+
+  const bestWebm = MediaRecorder.isTypeSupported(webmVP9) ? webmVP9 :
+                   MediaRecorder.isTypeSupported(webmVP8) ? webmVP8 :
+                   MediaRecorder.isTypeSupported(webm) ? webm : '';
+  const bestMp4 = MediaRecorder.isTypeSupported(mp4) ? mp4 : '';
+
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+  if (isTransparent && bestWebm && !isSafari) {
+    // WebM with alpha on main canvas (Chrome/Firefox)
+    exportCanvas = document.createElement('canvas');
+    exportCanvas.width = w;
+    exportCanvas.height = h;
+    exportCtx = exportCanvas.getContext('2d'); // alpha enabled
+    exportAlphaMode = true;
+    const stream = exportCanvas.captureStream(30);
+    const opts = { videoBitsPerSecond: 8000000, mimeType: bestWebm };
+    mediaRecorder = new MediaRecorder(stream, opts);
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+
+    // Contrast bg canvas for MP4 (no alpha)
+    exportCanvas2 = document.createElement('canvas');
+    exportCanvas2.width = w;
+    exportCanvas2.height = h;
+    exportCtx2 = exportCanvas2.getContext('2d', { alpha: false });
+    exportContrastBg = isLogoBright(videoLogoColor) ? '#000000' : '#ffffff';
+    exportCtx2.fillStyle = exportContrastBg;
+    exportCtx2.fillRect(0, 0, w, h);
+    recordedChunks2 = [];
+
+    const stream2 = exportCanvas2.captureStream(30);
+    const opts2 = { videoBitsPerSecond: 8000000 };
+    if (bestMp4) opts2.mimeType = bestMp4;
+    else opts2.mimeType = bestWebm;
+    mediaRecorder2 = new MediaRecorder(stream2, opts2);
+    mediaRecorder2.ondataavailable = e => { if (e.data.size > 0) recordedChunks2.push(e.data); };
+  } else {
+    // Single recording — solid bg or Safari transparent fallback
+    const effectiveBg = isTransparent
+      ? (isLogoBright(videoLogoColor) ? '#000000' : '#ffffff')
+      : videoBgColor;
+    if (isTransparent) exportContrastBg = effectiveBg;
+
+    exportCanvas = document.createElement('canvas');
+    exportCanvas.width = w;
+    exportCanvas.height = h;
+    exportCtx = exportCanvas.getContext('2d', { alpha: false });
+    exportCtx.fillStyle = effectiveBg;
+    exportCtx.fillRect(0, 0, w, h);
+    const stream = exportCanvas.captureStream(30);
+    const opts = { videoBitsPerSecond: 8000000 };
+    if (bestMp4) opts.mimeType = bestMp4;
+    else if (bestWebm) opts.mimeType = bestWebm;
+    mediaRecorder = new MediaRecorder(stream, opts);
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+
+    exportCanvas2 = null;
+    exportCtx2 = null;
+    mediaRecorder2 = null;
+  }
+
+  // Start
+  isRecording = true;
+  recordingStartTime = performance.now();
+  frameRendering = false;
+
+  // UI: rec dot on, block controls
+  document.querySelector('.rec-dot').style.opacity = '1';
+  document.getElementById('btnA').style.pointerEvents = 'none';
+  document.getElementById('btnB').style.pointerEvents = 'none';
+  videoToggleBtn.style.pointerEvents = 'none';
+  document.querySelectorAll('[data-duration]').forEach(b => b.style.pointerEvents = 'none');
+  document.querySelectorAll('[data-ratio]').forEach(b => b.style.pointerEvents = 'none');
+
+  mediaRecorder.start(100);
+  if (mediaRecorder2) mediaRecorder2.start(100);
+
+  recordFrameLoop();
+}
+
+function recordFrameLoop() {
+  if (!isRecording) return;
+
+  const elapsed = (performance.now() - recordingStartTime) / 1000;
+  document.getElementById('timer-current').textContent = elapsed.toFixed(2) + ' s';
+
+  if (elapsed >= videoDuration) {
+    stopRecording();
+    return;
+  }
+
+  if (!frameRendering) {
+    frameRendering = true;
+    renderExportFrame(() => { frameRendering = false; });
+  }
+  requestAnimationFrame(recordFrameLoop);
+}
+
+function stopRecording() {
+  if (!isRecording) return;
+  isRecording = false;
+  recordingComplete = true;
+
+  document.getElementById('timer-current').textContent = videoDuration.toFixed(2) + ' s';
+
+  // Dim the panel
+  document.getElementById('panel').style.opacity = '0.4';
+  document.getElementById('panel').style.pointerEvents = 'none';
+  // Re-enable video toggle button
+  videoToggleBtn.style.pointerEvents = '';
+  // Gray out mode-bar children except video toggle
+  document.getElementById('mode-bar').querySelectorAll(':scope > *').forEach(el => {
+    if (el !== videoToggleBtn) {
+      el.style.opacity = '0.4';
+      el.style.pointerEvents = 'none';
+    }
+  });
+
+  // Switch cursor to replay
+  canvasWrap.classList.remove('cursor-hammer', 'cursor-knife');
+  canvasWrap.classList.add('cursor-replay');
+
+  // Create promise immediately so download can await it
+  let blobsResolve;
+  blobsReady = new Promise(resolve => { blobsResolve = resolve; });
+
+  // Render final frame then stop recorders
+  renderExportFrame(() => {
+    const stops = [];
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      stops.push(new Promise(resolve => {
+        mediaRecorder.onstop = resolve;
+        mediaRecorder.stop();
+      }));
+    }
+    if (mediaRecorder2 && mediaRecorder2.state !== 'inactive') {
+      stops.push(new Promise(resolve => {
+        mediaRecorder2.onstop = resolve;
+        mediaRecorder2.stop();
+      }));
+    }
+
+    Promise.all(stops).then(() => {
+      if (recordedChunks.length > 0) {
+        recordedVideoBlob = new Blob(recordedChunks, { type: mediaRecorder.mimeType });
+        recordedVideoUrl = URL.createObjectURL(recordedVideoBlob);
+      }
+      if (recordedChunks2.length > 0) {
+        recordedVideoBlob2 = new Blob(recordedChunks2, { type: mediaRecorder2.mimeType });
+      }
+      blobsResolve();
+    });
+  });
+}
+
+function cleanupRecording() {
+  recordingComplete = false;
+  if (recordedVideoUrl) {
+    URL.revokeObjectURL(recordedVideoUrl);
+    recordedVideoUrl = null;
+  }
+  recordedVideoBlob = null;
+  recordedVideoBlob2 = null;
+  recordedChunks = [];
+  recordedChunks2 = [];
+  exportCanvas = null;
+  exportCtx = null;
+  exportCanvas2 = null;
+  exportCtx2 = null;
+  exportAlphaMode = false;
+  blobsReady = null;
+  mediaRecorder = null;
+  mediaRecorder2 = null;
+  // Reset rec dot
+  document.querySelector('.rec-dot').style.opacity = '0.4';
+  // Re-enable panel and mode bar
+  document.getElementById('panel').style.opacity = '';
+  document.getElementById('panel').style.pointerEvents = '';
+  document.getElementById('mode-bar').querySelectorAll(':scope > *').forEach(el => {
+    el.style.opacity = '';
+    el.style.pointerEvents = '';
+  });
+  document.getElementById('btnA').style.pointerEvents = '';
+  document.getElementById('btnB').style.pointerEvents = '';
+  videoToggleBtn.style.pointerEvents = '';
+  document.querySelectorAll('[data-duration]').forEach(b => b.style.pointerEvents = '');
+  document.querySelectorAll('[data-ratio]').forEach(b => b.style.pointerEvents = '');
+  // Restore cursor
+  canvasWrap.classList.remove('cursor-replay');
+  canvasWrap.classList.toggle('cursor-hammer', mode === 'A');
+  canvasWrap.classList.toggle('cursor-knife', mode === 'B');
+  // Reset timer
+  document.getElementById('timer-current').textContent = '0.00 s';
+  // Remove replay elements
+  const existingVideo = recordBox.querySelector('.replay-video');
+  const existingCanvas = recordBox.querySelector('.replay-canvas');
+  if (existingVideo) existingVideo.remove();
+  if (existingCanvas) existingCanvas.remove();
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function downloadRecordedVideo() {
+  if (blobsReady) await blobsReady;
+
+  const isTransparent = videoBgColor === 'transparent';
+
+  if (isTransparent && recordedVideoBlob2) {
+    // ZIP: WebM (alpha) + MP4 (contrast bg)
+    if (typeof JSZip !== 'undefined') {
+      const zip = new JSZip();
+      const ext1 = mediaRecorder && mediaRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm';
+      const ext2 = mediaRecorder2 && mediaRecorder2.mimeType.includes('mp4') ? 'mp4' : 'webm';
+
+      if (ext1 === ext2) {
+        zip.file(getExportFilename('webm'), recordedVideoBlob);
+        zip.file(getExportFilename('webm').replace('.webm', '_bg.webm'), recordedVideoBlob2);
+      } else {
+        zip.file(getExportFilename(ext1), recordedVideoBlob);
+        zip.file(getExportFilename(ext2), recordedVideoBlob2);
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      downloadBlob(zipBlob, getExportFilename('zip'));
+    } else {
+      downloadBlob(recordedVideoBlob, getExportFilename('webm'));
+    }
+  } else if (recordedVideoBlob) {
+    const ext = mediaRecorder && mediaRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm';
+    downloadBlob(recordedVideoBlob, getExportFilename(ext));
+  }
+}
+
+// ── REPLAY ──
+document.getElementById('replayBtn').addEventListener('click', () => {
+  if (!recordedVideoUrl || isRecording) return;
+
+  // Remove existing replay
+  const existingCanvas = recordBox.querySelector('.replay-canvas');
+  const existingVideo = recordBox.querySelector('.replay-video');
+  if (existingCanvas || existingVideo) {
+    if (existingCanvas) existingCanvas.remove();
+    if (existingVideo) existingVideo.remove();
+    return;
+  }
+
+  const isTransparent = videoBgColor === 'transparent';
+  const timerCurrent = document.getElementById('timer-current');
+  let replayRAF;
+
+  // Hidden video element for decoding
+  const video = document.createElement('video');
+  video.className = 'replay-video';
+  video.style.cssText = 'position:absolute;top:0;left:0;width:0;height:0;opacity:0;pointer-events:none;';
+  video.src = recordedVideoUrl;
+  video.muted = true;
+  video.playsInline = true;
+
+  if (isTransparent && exportAlphaMode) {
+    // WebM alpha available (Chrome/Firefox) — canvas with checkerboard
+    const { w, h } = getExportDimensions();
+    const replayCanvas = document.createElement('canvas');
+    replayCanvas.className = 'replay-canvas';
+    replayCanvas.width = w;
+    replayCanvas.height = h;
+    replayCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;z-index:50;border-radius:inherit;';
+    const rCtx = replayCanvas.getContext('2d');
+
+    const checkerSize = 24;
+    const checkerCanvas = document.createElement('canvas');
+    checkerCanvas.width = checkerSize * 2;
+    checkerCanvas.height = checkerSize * 2;
+    const cCtx = checkerCanvas.getContext('2d');
+    cCtx.fillStyle = '#ffffff';
+    cCtx.fillRect(0, 0, checkerSize * 2, checkerSize * 2);
+    cCtx.fillStyle = '#cccccc';
+    cCtx.fillRect(0, 0, checkerSize, checkerSize);
+    cCtx.fillRect(checkerSize, checkerSize, checkerSize, checkerSize);
+    const checkerPattern = rCtx.createPattern(checkerCanvas, 'repeat');
+
+    recordBox.appendChild(video);
+    recordBox.appendChild(replayCanvas);
+
+    function drawFrame() {
+      if (!replayCanvas.parentNode) return;
+      rCtx.fillStyle = checkerPattern;
+      rCtx.fillRect(0, 0, w, h);
+      rCtx.drawImage(video, 0, 0, w, h);
+      timerCurrent.textContent = video.currentTime.toFixed(2) + ' s';
+      replayRAF = requestAnimationFrame(drawFrame);
+    }
+
+    video.addEventListener('play', () => { replayRAF = requestAnimationFrame(drawFrame); });
+    video.addEventListener('ended', () => {
+      cancelAnimationFrame(replayRAF);
+      timerCurrent.textContent = videoDuration.toFixed(2) + ' s';
+      replayCanvas.remove();
+      video.remove();
+    });
+
+    video.play();
+  } else {
+    // Solid bg or Safari transparent fallback
+    video.className = 'replay-video';
+    const replayBgColor = (videoBgColor === 'transparent') ? exportContrastBg : videoBgColor;
+    video.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;z-index:50;border-radius:inherit;background:' + replayBgColor + ';';
+    recordBox.appendChild(video);
+    video.play();
+
+    function updateTimer() {
+      if (!video.parentNode) return;
+      timerCurrent.textContent = video.currentTime.toFixed(2) + ' s';
+      replayRAF = requestAnimationFrame(updateTimer);
+    }
+    replayRAF = requestAnimationFrame(updateTimer);
+
+    video.addEventListener('ended', () => {
+      cancelAnimationFrame(replayRAF);
+      timerCurrent.textContent = videoDuration.toFixed(2) + ' s';
+      video.remove();
+    });
+  }
+});
+
+// ── RESTORE SAVED PREFERENCES ──
+restorePrefs();
 </script>
 </body>
 </html>
