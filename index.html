@@ -2545,8 +2545,13 @@ function startRecording() {
   document.querySelectorAll('[data-duration]').forEach(b => b.style.pointerEvents = 'none');
   document.querySelectorAll('[data-ratio]').forEach(b => b.style.pointerEvents = 'none');
 
-  mediaRecorder.start(100);
-  if (mediaRecorder2) mediaRecorder2.start(100);
+  // WebM handles chunked recording fine; MP4 needs single chunk (no timeslice)
+  const isMp4Main = mediaRecorder.mimeType.includes('mp4');
+  mediaRecorder.start(isMp4Main ? undefined : 100);
+  if (mediaRecorder2) {
+    const isMp4Second = mediaRecorder2.mimeType.includes('mp4');
+    mediaRecorder2.start(isMp4Second ? undefined : 100);
+  }
 
   recordFrameLoop();
 }
