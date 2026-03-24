@@ -1461,11 +1461,14 @@ function resetState() {
 }
 
 // ── DOWNLOAD ──
-document.getElementById('downloadBtn').addEventListener('click', () => {
+document.getElementById('downloadBtn').addEventListener('click', async () => {
   // Video mode: download recorded video
-  if (videoMode && recordedVideoBlob) {
-    downloadRecordedVideo();
-    return;
+  if (videoMode && recordingComplete) {
+    if (blobsReady) await blobsReady;
+    if (recordedVideoBlob) {
+      downloadRecordedVideo();
+      return;
+    }
   }
   if (!originalSvgContent) return;
   if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
@@ -2685,19 +2688,13 @@ async function downloadRecordedVideo() {
   const isTransparent = videoBgColor === 'transparent';
 
   if (isTransparent && recordedVideoBlob2) {
-    // ZIP: WebM (alpha) + MP4 (contrast bg)
+    // ZIP: WebM (alpha) + MP4/WebM (contrast bg)
     if (typeof JSZip !== 'undefined') {
       const zip = new JSZip();
       const ext1 = mediaRecorder && mediaRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm';
       const ext2 = mediaRecorder2 && mediaRecorder2.mimeType.includes('mp4') ? 'mp4' : 'webm';
-
-      if (ext1 === ext2) {
-        zip.file(getExportFilename('webm'), recordedVideoBlob);
-        zip.file(getExportFilename('webm').replace('.webm', '_bg.webm'), recordedVideoBlob2);
-      } else {
-        zip.file(getExportFilename(ext1), recordedVideoBlob);
-        zip.file(getExportFilename(ext2), recordedVideoBlob2);
-      }
+      zip.file(getExportFilename(ext1), recordedVideoBlob);
+      zip.file(getExportFilename(ext2).replace('.' + ext2, '_bg.' + ext2), recordedVideoBlob2);
 
       const zipBlob = await zip.generateAsync({ type: 'blob' });
       downloadBlob(zipBlob, getExportFilename('zip'));
