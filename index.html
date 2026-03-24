@@ -2544,6 +2544,9 @@ function startRecording() {
   videoToggleBtn.style.pointerEvents = 'none';
   document.querySelectorAll('[data-duration]').forEach(b => b.style.pointerEvents = 'none');
   document.querySelectorAll('[data-ratio]').forEach(b => b.style.pointerEvents = 'none');
+  // Block bottom-left buttons during recording
+  document.getElementById('bottom-left').style.opacity = '0.4';
+  document.getElementById('bottom-left').style.pointerEvents = 'none';
 
   // WebM handles chunked recording fine; MP4 needs single chunk (no timeslice)
   const isMp4Main = mediaRecorder.mimeType.includes('mp4');
@@ -2594,6 +2597,9 @@ function stopRecording() {
     }
   });
 
+  // Restore bottom-left buttons after recording stops
+  document.getElementById('bottom-left').style.opacity = '';
+  document.getElementById('bottom-left').style.pointerEvents = '';
   // Switch cursor to replay
   canvasWrap.classList.remove('cursor-hammer', 'cursor-knife');
   canvasWrap.classList.add('cursor-replay');
@@ -2602,32 +2608,34 @@ function stopRecording() {
   let blobsResolve;
   blobsReady = new Promise(resolve => { blobsResolve = resolve; });
 
-  // Render final frame then stop recorders
+  // Render final frame, then wait briefly for encoder to flush, then stop recorders
   renderExportFrame(() => {
-    const stops = [];
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-      stops.push(new Promise(resolve => {
-        mediaRecorder.onstop = resolve;
-        mediaRecorder.stop();
-      }));
-    }
-    if (mediaRecorder2 && mediaRecorder2.state !== 'inactive') {
-      stops.push(new Promise(resolve => {
-        mediaRecorder2.onstop = resolve;
-        mediaRecorder2.stop();
-      }));
-    }
+    setTimeout(() => {
+      const stops = [];
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        stops.push(new Promise(resolve => {
+          mediaRecorder.onstop = resolve;
+          mediaRecorder.stop();
+        }));
+      }
+      if (mediaRecorder2 && mediaRecorder2.state !== 'inactive') {
+        stops.push(new Promise(resolve => {
+          mediaRecorder2.onstop = resolve;
+          mediaRecorder2.stop();
+        }));
+      }
 
-    Promise.all(stops).then(() => {
-      if (recordedChunks.length > 0) {
-        recordedVideoBlob = new Blob(recordedChunks, { type: mediaRecorder.mimeType });
-        recordedVideoUrl = URL.createObjectURL(recordedVideoBlob);
-      }
-      if (recordedChunks2.length > 0) {
-        recordedVideoBlob2 = new Blob(recordedChunks2, { type: mediaRecorder2.mimeType });
-      }
-      blobsResolve();
-    });
+      Promise.all(stops).then(() => {
+        if (recordedChunks.length > 0) {
+          recordedVideoBlob = new Blob(recordedChunks, { type: mediaRecorder.mimeType });
+          recordedVideoUrl = URL.createObjectURL(recordedVideoBlob);
+        }
+        if (recordedChunks2.length > 0) {
+          recordedVideoBlob2 = new Blob(recordedChunks2, { type: mediaRecorder2.mimeType });
+        }
+        blobsResolve();
+      });
+    }, 200);
   });
 }
 
@@ -2651,9 +2659,11 @@ function cleanupRecording() {
   mediaRecorder2 = null;
   // Reset rec dot
   document.querySelector('.rec-dot').style.opacity = '0.4';
-  // Re-enable panel and mode bar
+  // Re-enable panel, mode bar and bottom-left
   document.getElementById('panel').style.opacity = '';
   document.getElementById('panel').style.pointerEvents = '';
+  document.getElementById('bottom-left').style.opacity = '';
+  document.getElementById('bottom-left').style.pointerEvents = '';
   document.getElementById('mode-bar').querySelectorAll(':scope > *').forEach(el => {
     el.style.opacity = '';
     el.style.pointerEvents = '';
