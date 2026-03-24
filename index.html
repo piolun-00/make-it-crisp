@@ -989,6 +989,7 @@
     #video-artboard { border-radius: 24px; }
   }
   #canvas-wrap.cursor-replay { cursor: url('assets/Replay.png') 8 24, pointer; }
+  #artboard.cursor-replay, #artboard.cursor-replay * { cursor: url('assets/Replay.png') 8 24, pointer; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
 </head>
@@ -2603,6 +2604,7 @@ function stopRecording() {
   // Switch cursor to replay
   canvasWrap.classList.remove('cursor-hammer', 'cursor-knife');
   canvasWrap.classList.add('cursor-replay');
+  document.getElementById('artboard').classList.add('cursor-replay');
 
   // Create promise immediately so download can await it
   let blobsResolve;
@@ -2675,6 +2677,7 @@ function cleanupRecording() {
   document.querySelectorAll('[data-ratio]').forEach(b => b.style.pointerEvents = '');
   // Restore cursor
   canvasWrap.classList.remove('cursor-replay');
+  document.getElementById('artboard').classList.remove('cursor-replay');
   canvasWrap.classList.toggle('cursor-hammer', mode === 'A');
   canvasWrap.classList.toggle('cursor-knife', mode === 'B');
   // Reset timer
