@@ -1520,6 +1520,20 @@ document.getElementById('randomBtn').addEventListener('click', () => {
     cleanupRecording();
     resetState();
     startRecording();
+    setTimeout(() => {
+      const rx = rand(svgW * 0.15, svgW * 0.85);
+      const ry = rand(svgH * 0.15, svgH * 0.85);
+      if (mode === 'A') {
+        triggerModeA(rx, ry);
+      } else {
+        const scale = getScale();
+        const { offX, offY } = getOff(scale);
+        const sA = { x: offX + rand(0, svgW * 0.3) * scale, y: offY + rand(0, svgH) * scale };
+        const sB = { x: offX + rand(svgW * 0.7, svgW) * scale, y: offY + rand(0, svgH) * scale };
+        triggerModeB(sA, sB);
+      }
+    }, 300);
+    return;
   }
   // Random click somewhere on the SVG
   const rx = rand(svgW * 0.15, svgW * 0.85);
@@ -1625,6 +1639,9 @@ canvasWrap.addEventListener('touchend', e => {
     cleanupRecording();
     resetState();
     startRecording();
+    const ds = { ...dragStart }, de = { ...dragEnd };
+    setTimeout(() => triggerModeB(ds, de), 300);
+    return;
   }
   triggerModeB(dragStart, dragEnd);
 });
@@ -1641,6 +1658,10 @@ canvasWrap.addEventListener('touchstart', e => {
     cleanupRecording();
     resetState();
     startRecording();
+    const p = touchPos(e);
+    const scale = getScale(); const { offX, offY } = getOff(scale);
+    setTimeout(() => triggerModeA((p.x - offX) / scale, (p.y - offY) / scale), 300);
+    return;
   }
   const p = touchPos(e);
   const scale = getScale(); const { offX, offY } = getOff(scale);
@@ -1677,6 +1698,9 @@ canvasWrap.addEventListener('mouseup', e => {
     cleanupRecording();
     resetState();
     startRecording();
+    const ds = { ...dragStart }, de = { ...dragEnd };
+    setTimeout(() => triggerModeB(ds, de), 300);
+    return;
   }
   triggerModeB(dragStart, dragEnd);
 });
@@ -1695,6 +1719,11 @@ canvasWrap.addEventListener('click', e => {
     cleanupRecording();
     resetState();
     startRecording();
+    // Delay first hit so recording shows logo briefly
+    const scale = getScale(); const { offX, offY } = getOff(scale);
+    const pos = canvasPos(e);
+    setTimeout(() => triggerModeA((pos.x - offX) / scale, (pos.y - offY) / scale), 300);
+    return;
   }
   const scale = getScale(); const { offX, offY } = getOff(scale);
   const pos = canvasPos(e);
@@ -2564,9 +2593,7 @@ function startRecording() {
     mediaRecorder2.start(isMp4Second ? undefined : 100);
   }
 
-  // Delay first frame capture by one RAF tick so the trigger (crush/slice)
-  // that runs right after startRecording() has time to create fragments
-  requestAnimationFrame(() => recordFrameLoop());
+  recordFrameLoop();
 }
 
 function recordFrameLoop() {
