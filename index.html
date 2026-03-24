@@ -2372,6 +2372,24 @@ window.addEventListener('resize', () => {
   if (videoMode) updateVideoArtboardSize();
 });
 
+// Warm up MP4 encoder on page load to prevent corrupted first recording
+(function warmupMp4() {
+  if (!window.MediaRecorder) return;
+  const mp4 = 'video/mp4';
+  if (!MediaRecorder.isTypeSupported(mp4)) return;
+  const c = document.createElement('canvas');
+  c.width = 2; c.height = 2;
+  const ctx = c.getContext('2d');
+  ctx.fillRect(0, 0, 2, 2);
+  try {
+    const s = c.captureStream(0);
+    const r = new MediaRecorder(s, { mimeType: mp4 });
+    r.ondataavailable = () => {};
+    r.start();
+    setTimeout(() => { try { r.stop(); } catch(e) {} }, 100);
+  } catch(e) {}
+})();
+
 // ── VIDEO RECORDING ENGINE ──
 let isRecording = false;
 let recordingComplete = false;
@@ -2539,7 +2557,9 @@ function startRecording() {
     recordedChunks2 = [];
 
     const stream2 = exportCanvas2.captureStream(30);
-    const opts2 = { videoBitsPerSecond: 8000000, mimeType: bestWebm };
+    const opts2 = { videoBitsPerSecond: 8000000 };
+    if (bestMp4) opts2.mimeType = bestMp4;
+    else opts2.mimeType = bestWebm;
     mediaRecorder2 = new MediaRecorder(stream2, opts2);
     mediaRecorder2.ondataavailable = e => { if (e.data.size > 0) recordedChunks2.push(e.data); };
   } else {
@@ -2557,8 +2577,8 @@ function startRecording() {
     exportCtx.fillRect(0, 0, w, h);
     const stream = exportCanvas.captureStream(30);
     const opts = { videoBitsPerSecond: 8000000 };
-    if (bestWebm) opts.mimeType = bestWebm;
-    else if (bestMp4) opts.mimeType = bestMp4;
+    if (bestMp4) opts.mimeType = bestMp4;
+    else if (bestWebm) opts.mimeType = bestWebm;
     mediaRecorder = new MediaRecorder(stream, opts);
     mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
 
@@ -2740,11 +2760,13 @@ async function downloadRecordedVideo() {
   const isTransparent = videoBgColor === 'transparent';
 
   if (isTransparent && recordedVideoBlob2) {
-    // ZIP: WebM (alpha) + WebM (contrast bg)
+    // ZIP: WebM (alpha) + MP4/WebM (contrast bg)
     if (typeof JSZip !== 'undefined') {
       const zip = new JSZip();
-      zip.file(getExportFilename('webm').replace('.webm', '_alpha.webm'), recordedVideoBlob);
-      zip.file(getExportFilename('webm').replace('.webm', '_bg.webm'), recordedVideoBlob2);
+      const ext1 = mediaRecorder && mediaRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm';
+      const ext2 = mediaRecorder2 && mediaRecorder2.mimeType.includes('mp4') ? 'mp4' : 'webm';
+      zip.file(getExportFilename(ext1 === 'mp4' ? 'webm' : ext1).replace('.webm', '_alpha.webm'), recordedVideoBlob);
+      zip.file(getExportFilename(ext2).replace('.' + ext2, '_bg.' + ext2), recordedVideoBlob2);
 
       const zipBlob = await zip.generateAsync({ type: 'blob' });
       downloadBlob(zipBlob, getExportFilename('zip'));
@@ -2752,7 +2774,8 @@ async function downloadRecordedVideo() {
       downloadBlob(recordedVideoBlob, getExportFilename('webm'));
     }
   } else if (recordedVideoBlob) {
-    downloadBlob(recordedVideoBlob, getExportFilename('webm'));
+    const ext = mediaRecorder && mediaRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm';
+    downloadBlob(recordedVideoBlob, getExportFilename(ext));
   }
 }
 
