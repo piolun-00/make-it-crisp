@@ -2539,9 +2539,7 @@ function startRecording() {
     recordedChunks2 = [];
 
     const stream2 = exportCanvas2.captureStream(30);
-    const opts2 = { videoBitsPerSecond: 8000000 };
-    if (bestMp4) opts2.mimeType = bestMp4;
-    else opts2.mimeType = bestWebm;
+    const opts2 = { videoBitsPerSecond: 8000000, mimeType: bestWebm };
     mediaRecorder2 = new MediaRecorder(stream2, opts2);
     mediaRecorder2.ondataavailable = e => { if (e.data.size > 0) recordedChunks2.push(e.data); };
   } else {
@@ -2559,8 +2557,8 @@ function startRecording() {
     exportCtx.fillRect(0, 0, w, h);
     const stream = exportCanvas.captureStream(30);
     const opts = { videoBitsPerSecond: 8000000 };
-    if (bestMp4) opts.mimeType = bestMp4;
-    else if (bestWebm) opts.mimeType = bestWebm;
+    if (bestWebm) opts.mimeType = bestWebm;
+    else if (bestMp4) opts.mimeType = bestMp4;
     mediaRecorder = new MediaRecorder(stream, opts);
     mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
 
@@ -2742,13 +2740,11 @@ async function downloadRecordedVideo() {
   const isTransparent = videoBgColor === 'transparent';
 
   if (isTransparent && recordedVideoBlob2) {
-    // ZIP: WebM (alpha) + MP4/WebM (contrast bg)
+    // ZIP: WebM (alpha) + WebM (contrast bg)
     if (typeof JSZip !== 'undefined') {
       const zip = new JSZip();
-      const ext1 = mediaRecorder && mediaRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm';
-      const ext2 = mediaRecorder2 && mediaRecorder2.mimeType.includes('mp4') ? 'mp4' : 'webm';
-      zip.file(getExportFilename(ext1), recordedVideoBlob);
-      zip.file(getExportFilename(ext2).replace('.' + ext2, '_bg.' + ext2), recordedVideoBlob2);
+      zip.file(getExportFilename('webm').replace('.webm', '_alpha.webm'), recordedVideoBlob);
+      zip.file(getExportFilename('webm').replace('.webm', '_bg.webm'), recordedVideoBlob2);
 
       const zipBlob = await zip.generateAsync({ type: 'blob' });
       downloadBlob(zipBlob, getExportFilename('zip'));
@@ -2756,8 +2752,7 @@ async function downloadRecordedVideo() {
       downloadBlob(recordedVideoBlob, getExportFilename('webm'));
     }
   } else if (recordedVideoBlob) {
-    const ext = mediaRecorder && mediaRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm';
-    downloadBlob(recordedVideoBlob, getExportFilename(ext));
+    downloadBlob(recordedVideoBlob, getExportFilename('webm'));
   }
 }
 
