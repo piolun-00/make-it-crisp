@@ -710,8 +710,30 @@
   .pill-btn.active::after {
     box-shadow: inset 0px 1px 2px rgba(0,0,0,0.45);
   }
-  .pill-btn:hover:not(.active) {
+  .pill-btn:hover:not(.active):not(:disabled) {
     background: #f0f0f0;
+  }
+  .orientation-btn,
+  .orientation-spacer {
+    flex: 0 0 24px;
+    min-width: 24px;
+  }
+  .orientation-btn {
+    padding: 0;
+  }
+  .orientation-btn img {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+    transition: transform 0.2s ease;
+  }
+  .orientation-btn.landscape img {
+    transform: rotate(90deg);
+  }
+  .orientation-btn.disabled,
+  .orientation-btn:disabled {
+    opacity: 0.3;
+    pointer-events: none;
   }
 
   /* Color inputs */
@@ -1136,6 +1158,7 @@
               <button class="pill-btn active" data-duration="1">1s</button>
               <button class="pill-btn" data-duration="3">3s</button>
               <button class="pill-btn" data-duration="5">5s</button>
+              <div class="orientation-spacer"></div>
             </div>
           </div>
           <div class="video-control-group">
@@ -1144,6 +1167,9 @@
               <button class="pill-btn active" data-ratio="1:1">1:1</button>
               <button class="pill-btn" data-ratio="4:5">4:5</button>
               <button class="pill-btn" data-ratio="9:16">9:16</button>
+              <button class="pill-btn orientation-btn disabled" id="orientationBtn" disabled>
+                <img src="assets/Orientation.png" alt="Orientation" id="orientationIcon">
+              </button>
             </div>
           </div>
         </div>
@@ -1378,7 +1404,7 @@ function setMode(m) {
 // ── PERSIST PREFERENCES ──
 function savePrefs() {
   localStorage.setItem('crisp_prefs', JSON.stringify({
-    mode, videoMode, videoDuration, videoRatio
+    mode, videoMode, videoDuration, videoRatio, videoOrientation
   }));
 }
 
@@ -1400,8 +1426,15 @@ function restorePrefs() {
       if (btn) btn.click();
     }
 
+    // Orientation (restore before ratio so labels are correct)
+    if (p.videoOrientation === 'landscape') {
+      videoOrientation = 'landscape';
+      applyOrientation();
+    }
+
     // Ratio
-    if (['1:1', '4:5', '9:16'].includes(p.videoRatio)) {
+    const validRatios = ['1:1', '4:5', '9:16', '5:4', '16:9'];
+    if (validRatios.includes(p.videoRatio)) {
       const btn = document.querySelector(`[data-ratio="${p.videoRatio}"]`);
       if (btn) btn.click();
     }
@@ -2179,6 +2212,7 @@ artboard.addEventListener('drop', async e => {
 let videoMode = false;
 let videoDuration = 1;
 let videoRatio = '1:1';
+let videoOrientation = 'portrait'; // 'portrait' | 'landscape'
 let videoBgColor = '#ffffff';
 let videoLogoColor = '#000000';
 
@@ -2243,9 +2277,60 @@ document.querySelectorAll('[data-ratio]').forEach(btn => {
     document.querySelectorAll('[data-ratio]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     videoRatio = btn.dataset.ratio;
+    // Clicking 1:1 resets orientation to portrait (and labels)
+    if (videoRatio === '1:1' && videoOrientation === 'landscape') {
+      videoOrientation = 'portrait';
+      applyOrientation();
+    }
+    updateOrientationBtn();
     updateVideoArtboardSize();
     savePrefs();
   });
+});
+
+// Orientation toggle
+const orientationBtn = document.getElementById('orientationBtn');
+const orientationIcon = document.getElementById('orientationIcon');
+
+function updateOrientationBtn() {
+  const isSquare = videoRatio === '1:1';
+  orientationBtn.disabled = isSquare;
+  orientationBtn.classList.toggle('disabled', isSquare);
+  if (isSquare) {
+    videoOrientation = 'portrait';
+    orientationBtn.classList.remove('landscape');
+  }
+}
+
+function applyOrientation() {
+  const ratioMap = { '4:5': '5:4', '5:4': '4:5', '9:16': '16:9', '16:9': '9:16' };
+  const btns = document.querySelectorAll('[data-ratio]');
+  btns.forEach(btn => {
+    const r = btn.dataset.ratio;
+    if (r === '1:1') return;
+    if (videoOrientation === 'landscape') {
+      const landscape = ratioMap[r] && r.indexOf(':') > 0 && parseInt(r) < parseInt(r.split(':')[1]) ? ratioMap[r] : r;
+      // If portrait ratio, swap to landscape
+      if (r === '4:5') { btn.dataset.ratio = '5:4'; btn.textContent = '5:4'; }
+      else if (r === '9:16') { btn.dataset.ratio = '16:9'; btn.textContent = '16:9'; }
+    } else {
+      // If landscape ratio, swap to portrait
+      if (r === '5:4') { btn.dataset.ratio = '4:5'; btn.textContent = '4:5'; }
+      else if (r === '16:9') { btn.dataset.ratio = '9:16'; btn.textContent = '9:16'; }
+    }
+  });
+  // Update active ratio if it was swapped
+  const activeBtn = document.querySelector('[data-ratio].active');
+  if (activeBtn) videoRatio = activeBtn.dataset.ratio;
+  orientationBtn.classList.toggle('landscape', videoOrientation === 'landscape');
+}
+
+orientationBtn.addEventListener('click', () => {
+  if (videoRatio === '1:1') return;
+  videoOrientation = videoOrientation === 'portrait' ? 'landscape' : 'portrait';
+  applyOrientation();
+  updateVideoArtboardSize();
+  savePrefs();
 });
 
 // Update video artboard size based on ratio
@@ -2256,12 +2341,9 @@ function updateVideoArtboardSize() {
   const maxW = artboardRect.width - 80;
 
   let ratioW, ratioH;
-  switch (videoRatio) {
-    case '1:1': ratioW = 1; ratioH = 1; break;
-    case '4:5': ratioW = 4; ratioH = 5; break;
-    case '9:16': ratioW = 9; ratioH = 16; break;
-    default: ratioW = 1; ratioH = 1;
-  }
+  const parts = videoRatio.split(':');
+  ratioW = parseInt(parts[0]) || 1;
+  ratioH = parseInt(parts[1]) || 1;
 
   let w, h;
   if (maxW / ratioW < maxH / ratioH) {
@@ -2469,14 +2551,13 @@ function isLogoBright(hex) {
 }
 
 function getExportDimensions() {
-  const w = 1080;
-  let h;
   switch (videoRatio) {
-    case '4:5': h = 1350; break;
-    case '9:16': h = 1920; break;
-    default: h = 1080;
+    case '4:5': return { w: 1080, h: 1350 };
+    case '5:4': return { w: 1350, h: 1080 };
+    case '9:16': return { w: 1080, h: 1920 };
+    case '16:9': return { w: 1920, h: 1080 };
+    default: return { w: 1080, h: 1080 };
   }
-  return { w, h };
 }
 
 function getExportFilename(ext) {
