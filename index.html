@@ -154,6 +154,11 @@
     top: 0; left: 0; right: 0; bottom: 0;
     transform-style: preserve-3d;
   }
+  /* Safari: skip expensive 3D compositing */
+  @supports (-webkit-touch-callout: none) {
+    #canvas-wrap { transform-style: flat; }
+    .fragment-div { transform-style: flat; will-change: auto; }
+  }
 
   #outputSvg {
     position: absolute;
@@ -1009,7 +1014,7 @@
       <button class="upload-prompt-btn" id="uploadBtnCenter" title="Upload file">
         <img src="assets/upload_file.svg" alt="Upload">
       </button>
-      <span id="upload-prompt-label">Upload an *.svg file</span>
+      <span id="upload-prompt-label">Upload file</span>
     </div>
     <div id="video-artboard" style="display:none;">
       <div id="record-box"></div>
@@ -1161,7 +1166,7 @@
             </div>
           </div>
           <div class="video-control-group">
-            <span class="slider-label">Logo color</span>
+            <span class="slider-label">Object color</span>
             <div class="color-input-row">
               <div class="color-swatch" id="logoColorSwatch" style="background: #000000;"></div>
               <div class="hex-input-wrap">
@@ -1201,7 +1206,7 @@
   </div><!-- /right-panel-inner -->
   </div><!-- /right-panel -->
 
-  <input type="file" accept=".svg" id="fileInput">
+  <input type="file" accept=".svg,.jpg,.jpeg,.png,.webp" id="fileInput">
 </div>
 
 <script>
@@ -1259,9 +1264,13 @@ const sliderJagged = makeSlider(
 // helpers: map 0..1 to range
 const mapVal = (v, min, max) => min + v * (max - min);
 
+// ── BROWSER DETECT ──
+const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
 // ── STATE ──
 let originalSvgContent = null;
 let parsedSvgDoc = null;
+let isRasterSource = false;
 let svgW = 400, svgH = 400;
 let particles = [];
 let rafId = null;
@@ -1409,35 +1418,81 @@ document.getElementById('upload-prompt').addEventListener('click', () => {
   document.getElementById('fileInput').click();
 });
 
-document.getElementById('fileInput').addEventListener('change', e => {
+function isRasterFile(file) {
+  return /\.(jpg|jpeg|png|webp)$/i.test(file.name) || /^image\/(jpeg|png|webp)/.test(file.type);
+}
+
+function rasterToSvg(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      // Convert to data URL so the SVG is self-contained
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const dataUrl = canvas.toDataURL(file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.95);
+      const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><image width="${w}" height="${h}" href="${dataUrl}"/></svg>`;
+      URL.revokeObjectURL(url);
+      resolve(svgStr);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Failed to load image'));
+    };
+    img.src = url;
+  });
+}
+
+async function loadSvgContent(svgString, raster = false) {
+  isRasterSource = raster;
+  originalSvgContent = svgString;
+  parsedSvgDoc = new DOMParser().parseFromString(originalSvgContent, 'image/svg+xml');
+  const svgEl = parsedSvgDoc.querySelector('svg');
+  if (!svgEl) return;
+  const vb = svgEl.getAttribute('viewBox');
+  if (vb) {
+    const p = vb.trim().split(/[\s,]+/);
+    svgW = parseFloat(p[2]) || 400;
+    svgH = parseFloat(p[3]) || 400;
+  } else {
+    svgW = parseFloat(svgEl.getAttribute('width')) || 400;
+    svgH = parseFloat(svgEl.getAttribute('height')) || 400;
+  }
+  await prepareColorSampling();
+  resetState();
+  uploadPrompt.classList.add('hidden');
+  document.getElementById('artboard').classList.add('has-file');
+  randomBtn.classList.remove('disabled');
+  panelVideo.classList.remove('no-file');
+  applyBgColor();
+  applyLogoColor();
+
+  // Disable object color controls for raster images
+  const logoRow = document.getElementById('logoColorInput').closest('.video-control-group');
+  if (logoRow) {
+    logoRow.style.opacity = isRasterSource ? '0.4' : '';
+    logoRow.style.pointerEvents = isRasterSource ? 'none' : '';
+  }
+}
+
+document.getElementById('fileInput').addEventListener('change', async e => {
   const file = e.target.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = async ev => {
-    originalSvgContent = ev.target.result;
-    parsedSvgDoc = new DOMParser().parseFromString(originalSvgContent, 'image/svg+xml');
-    const svgEl = parsedSvgDoc.querySelector('svg');
-    if (!svgEl) return;
-    const vb = svgEl.getAttribute('viewBox');
-    if (vb) {
-      const p = vb.trim().split(/[\s,]+/);
-      svgW = parseFloat(p[2]) || 400;
-      svgH = parseFloat(p[3]) || 400;
+  try {
+    if (isRasterFile(file)) {
+      const svgStr = await rasterToSvg(file);
+      await loadSvgContent(svgStr, true);
     } else {
-      svgW = parseFloat(svgEl.getAttribute('width')) || 400;
-      svgH = parseFloat(svgEl.getAttribute('height')) || 400;
+      const text = await file.text();
+      await loadSvgContent(text, false);
     }
-    await prepareColorSampling();
-    resetState();
-    uploadPrompt.classList.add('hidden');
-    document.getElementById('artboard').classList.add('has-file');
-    randomBtn.classList.remove('disabled');
-    panelVideo.classList.remove('no-file');
-    // Apply default colors immediately
-    applyBgColor();
-    applyLogoColor();
-  };
-  reader.readAsText(file);
+  } catch (err) {
+    console.error('File load error:', err);
+  }
   e.target.value = '';
 });
 
@@ -1809,7 +1864,7 @@ function hullArea(h) {
   for (let i = 0; i < h.length; i++) { const j = (i + 1) % h.length; a += h[i][0] * h[j][1] - h[j][0] * h[i][1]; }
   return Math.abs(a) / 2;
 }
-function getVoronoiCells(pts, w, h, res = 130) {
+function getVoronoiCells(pts, w, h, res = isSafari ? 80 : 130) {
   const cells = pts.map(() => []);
   const sw = w / res, sh = h / res;
   for (let gx = 0; gx <= res; gx++) for (let gy = 0; gy <= res; gy++) {
@@ -1834,6 +1889,7 @@ function buildAndRender(vpts) {
   const totalArea = svgW * svgH;
   const ns = 'http://www.w3.org/2000/svg';
   const clipIdBase = Date.now();
+  const frag = document.createDocumentFragment();
 
   vpts.forEach((pt, i) => {
     const hull = convexHull(cells[i]);
@@ -1900,7 +1956,7 @@ function buildAndRender(vpts) {
       div.appendChild(svg);
     }
 
-    canvasWrap.appendChild(div);
+    frag.appendChild(div);
 
     particles.push({
       el: div, cx: hcx, cy: hcy,
@@ -1914,6 +1970,7 @@ function buildAndRender(vpts) {
     });
   });
 
+  canvasWrap.appendChild(frag);
   applyTransforms();
   // Re-apply custom logo color after rebuild from original SVG
   applyLogoColor();
@@ -1923,7 +1980,11 @@ function applyTransforms() {
   particles.forEach(p => {
     const tx = p.px - p.screenCx;
     const ty = p.py - p.screenCy;
-    p.el.style.transform = `perspective(600px) translate(${tx}px, ${ty}px) rotateX(${p.rx}deg) rotateY(${p.ry}deg) rotateZ(${p.rot}deg)`;
+    if (isSafari) {
+      p.el.style.transform = `translate(${tx}px, ${ty}px) rotate(${p.rot}deg)`;
+    } else {
+      p.el.style.transform = `perspective(600px) translate(${tx}px, ${ty}px) rotateX(${p.rx}deg) rotateY(${p.ry}deg) rotateZ(${p.rot}deg)`;
+    }
   });
 }
 
@@ -2093,37 +2154,25 @@ artboard.addEventListener('dragleave', e => {
     artboard.style.background = '';
   }
 });
-artboard.addEventListener('drop', e => {
+artboard.addEventListener('drop', async e => {
   e.preventDefault();
   artboard.style.background = '';
   const file = e.dataTransfer.files[0];
-  if (!file || !file.name.toLowerCase().endsWith('.svg')) return;
-  const reader = new FileReader();
-  reader.onload = async ev => {
-    originalSvgContent = ev.target.result;
-    parsedSvgDoc = new DOMParser().parseFromString(originalSvgContent, 'image/svg+xml');
-    const svgEl = parsedSvgDoc.querySelector('svg');
-    if (!svgEl) return;
-    const vb = svgEl.getAttribute('viewBox');
-    if (vb) {
-      const p = vb.trim().split(/[\s,]+/);
-      svgW = parseFloat(p[2]) || 400;
-      svgH = parseFloat(p[3]) || 400;
+  if (!file) return;
+  const isRaster = isRasterFile(file);
+  const isSvg = file.name.toLowerCase().endsWith('.svg') || file.type === 'image/svg+xml';
+  if (!isRaster && !isSvg) return;
+  try {
+    if (isRaster) {
+      const svgStr = await rasterToSvg(file);
+      await loadSvgContent(svgStr, true);
     } else {
-      svgW = parseFloat(svgEl.getAttribute('width')) || 400;
-      svgH = parseFloat(svgEl.getAttribute('height')) || 400;
+      const text = await file.text();
+      await loadSvgContent(text, false);
     }
-    await prepareColorSampling();
-    resetState();
-    uploadPrompt.classList.add('hidden');
-    artboard.classList.add('has-file');
-    randomBtn.classList.remove('disabled');
-    panelVideo.classList.remove('no-file');
-    // Apply default colors immediately
-    applyBgColor();
-    applyLogoColor();
-  };
-  reader.readAsText(file);
+  } catch (err) {
+    console.error('Drop load error:', err);
+  }
 });
 
 // ── VIDEO MODE ──
@@ -2531,8 +2580,6 @@ function startRecording() {
                    MediaRecorder.isTypeSupported(webmVP8) ? webmVP8 :
                    MediaRecorder.isTypeSupported(webm) ? webm : '';
   const bestMp4 = MediaRecorder.isTypeSupported(mp4) ? mp4 : '';
-
-  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
   if (isTransparent && bestWebm && !isSafari) {
     // WebM with alpha on main canvas (Chrome/Firefox)
