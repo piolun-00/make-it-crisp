@@ -1179,16 +1179,18 @@
             <div class="color-input-row">
               <div class="color-swatch" id="bgColorSwatch" style="background: #ffffff;"></div>
               <div class="hex-input-wrap">
-                <input type="text" class="hex-input" id="bgColorInput" value="White" placeholder="#000000">
+                <input type="text" class="hex-input" id="bgColorInput" value="White" placeholder="Color">
               </div>
             </div>
             <div class="color-presets" id="bgPresets">
               <button class="color-preset-btn" data-color="transparent" style="background: transparent; background-image: url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22><rect width=%228%22 height=%228%22 fill=%22%23ccc%22/><rect x=%228%22 y=%228%22 width=%228%22 height=%228%22 fill=%22%23ccc%22/></svg>');"></button>
               <button class="color-preset-btn" data-color="#000000" style="background:#000000;"></button>
               <button class="color-preset-btn" data-color="#d7d7d7" style="background:#d7d7d7;"></button>
-              <button class="color-preset-btn" data-color="#ffffff" style="background:#ffffff;"></button>
-              <button class="color-preset-btn" data-color="#e31c1c" style="background:#e31c1c;"></button>
-              <button class="color-preset-btn" data-color="#eaf73c" style="background:#eaf73c;"></button>
+              <button class="color-preset-btn" data-color="#d11924" style="background:#d11924;"></button>
+              <button class="color-preset-btn" data-color="#fca299" style="background:#fca299;"></button>
+              <button class="color-preset-btn" data-color="#714a3e" style="background:#714a3e;"></button>
+              <button class="color-preset-btn" data-color="#eac6a7" style="background:#eac6a7;"></button>
+              <button class="color-preset-btn" data-color="#acd1ff" style="background:#acd1ff;"></button>
             </div>
           </div>
           <div class="video-control-group">
@@ -1196,15 +1198,17 @@
             <div class="color-input-row">
               <div class="color-swatch" id="logoColorSwatch" style="background: #000000;"></div>
               <div class="hex-input-wrap">
-                <input type="text" class="hex-input" id="logoColorInput" value="Black" placeholder="#000000">
+                <input type="text" class="hex-input" id="logoColorInput" value="Black" placeholder="Color">
               </div>
             </div>
             <div class="color-presets" id="logoPresets">
               <button class="color-preset-btn" data-color="#000000" style="background:#000000;"></button>
               <button class="color-preset-btn" data-color="#d7d7d7" style="background:#d7d7d7;"></button>
-              <button class="color-preset-btn" data-color="#ffffff" style="background:#ffffff;"></button>
-              <button class="color-preset-btn" data-color="#e31c1c" style="background:#e31c1c;"></button>
-              <button class="color-preset-btn" data-color="#eaf73c" style="background:#eaf73c;"></button>
+              <button class="color-preset-btn" data-color="#d11924" style="background:#d11924;"></button>
+              <button class="color-preset-btn" data-color="#fca299" style="background:#fca299;"></button>
+              <button class="color-preset-btn" data-color="#714a3e" style="background:#714a3e;"></button>
+              <button class="color-preset-btn" data-color="#eac6a7" style="background:#eac6a7;"></button>
+              <button class="color-preset-btn" data-color="#acd1ff" style="background:#acd1ff;"></button>
             </div>
           </div>
         </div>
@@ -1590,11 +1594,50 @@ document.getElementById('downloadBtn').addEventListener('click', async () => {
     str = new XMLSerializer().serializeToString(svg);
   }
 
-  const blob = new Blob([str], { type: 'image/svg+xml' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'crisp-output.svg'; a.click();
-  URL.revokeObjectURL(url);
+  // Render SVG to PNG with alpha
+  const svgBlob = new Blob([str], { type: 'image/svg+xml' });
+  const svgUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(str);
+  const pngImg = new Image();
+  pngImg.onload = async () => {
+    const pngCanvas = document.createElement('canvas');
+    pngCanvas.width = pngImg.naturalWidth;
+    pngCanvas.height = pngImg.naturalHeight;
+    const pngCtx = pngCanvas.getContext('2d');
+    pngCtx.drawImage(pngImg, 0, 0);
+
+    const pngDataUrl = pngCanvas.toDataURL('image/png');
+    const pngData = atob(pngDataUrl.split(',')[1]);
+    const pngArr = new Uint8Array(pngData.length);
+    for (let i = 0; i < pngData.length; i++) pngArr[i] = pngData.charCodeAt(i);
+
+    if (typeof JSZip !== 'undefined') {
+      const zip = new JSZip();
+      zip.file('crisp-output.svg', str);
+      zip.file('crisp-output.png', pngArr);
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(zipBlob);
+      a.download = 'crisp-output.zip';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } else {
+      // Fallback: just download SVG
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(svgBlob);
+      a.download = 'crisp-output.svg';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+  };
+  pngImg.onerror = () => {
+    // Fallback: just download SVG
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(svgBlob);
+    a.download = 'crisp-output.svg';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+  pngImg.src = svgUrl;
 });
 
 // ── RANDOM (cookie) ──
@@ -2387,10 +2430,19 @@ function resolveColorKeyword(val) {
     'transparent': 'transparent',
     'white': '#ffffff',
     'black': '#000000',
-    'red': '#e31c1c',
-    'green': '#eaf73c',
     'gray': '#d7d7d7',
     'grey': '#d7d7d7',
+    'red': '#d11924',
+    'pink': '#fca299',
+    'brown': '#714a3e',
+    'cream': '#eac6a7',
+    'blue': '#acd1ff',
+    'orange': '#fd3e00',
+    'hot pink': '#fe0093',
+    'hotpink': '#fe0093',
+    'yellow': '#fff0a4',
+    'lime': '#dae981',
+    'lime green': '#dae981',
   };
   if (keywords[lower]) return keywords[lower];
   // Accept hex with or without #, 3 or 6 digits
@@ -2436,9 +2488,16 @@ const colorDisplayName = {
   'transparent': 'Transparent',
   '#ffffff': 'White',
   '#000000': 'Black',
-  '#e31c1c': 'Red',
-  '#eaf73c': 'Green',
   '#d7d7d7': 'Gray',
+  '#d11924': 'Red',
+  '#fca299': 'Pink',
+  '#714a3e': 'Brown',
+  '#eac6a7': 'Cream',
+  '#acd1ff': 'Blue',
+  '#fd3e00': 'Orange',
+  '#fe0093': 'Hot pink',
+  '#fff0a4': 'Yellow',
+  '#dae981': 'Lime',
 };
 
 function handleBgColorChange(setInputValue) {
@@ -2472,8 +2531,22 @@ function handleLogoColorChange(setInputValue) {
 }
 
 // Select all text on focus for easy replacement
-bgColorInput.addEventListener('focus', () => bgColorInput.select());
-logoColorInput.addEventListener('focus', () => logoColorInput.select());
+bgColorInput.addEventListener('focus', () => setTimeout(() => bgColorInput.select(), 0));
+logoColorInput.addEventListener('focus', () => setTimeout(() => logoColorInput.select(), 0));
+
+// Restore current color name on blur if field is empty or invalid
+bgColorInput.addEventListener('blur', () => {
+  const val = bgColorInput.value.trim();
+  if (!val || !resolveColorKeyword(val)) {
+    bgColorInput.value = colorDisplayName[videoBgColor] || videoBgColor;
+  }
+});
+logoColorInput.addEventListener('blur', () => {
+  const val = logoColorInput.value.trim();
+  if (!val || !resolveColorKeyword(val)) {
+    logoColorInput.value = colorDisplayName[videoLogoColor] || videoLogoColor;
+  }
+});
 
 // Real-time updates as user types (input) + keyword resolve on blur/enter (change)
 bgColorInput.addEventListener('input', () => handleBgColorChange(false));
