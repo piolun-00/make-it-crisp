@@ -2761,9 +2761,14 @@ function startRecording() {
   const bestWebm = MediaRecorder.isTypeSupported(webmVP9) ? webmVP9 :
                    MediaRecorder.isTypeSupported(webmVP8) ? webmVP8 :
                    MediaRecorder.isTypeSupported(webm) ? webm : '';
+  // For alpha: prefer VP8 — Chrome's MediaRecorder reliably encodes alpha
+  // plane only with VP8. VP9 path drops alpha (YUV-only).
+  const bestWebmAlpha = MediaRecorder.isTypeSupported(webmVP8) ? webmVP8 :
+                        MediaRecorder.isTypeSupported(webmVP9) ? webmVP9 :
+                        MediaRecorder.isTypeSupported(webm) ? webm : '';
   const bestMp4 = MediaRecorder.isTypeSupported(mp4) ? mp4 : '';
 
-  if (isTransparent && bestWebm && !isSafari) {
+  if (isTransparent && bestWebmAlpha && !isSafari) {
     // WebM with alpha on main canvas (Chrome/Firefox)
     exportCanvas = document.createElement('canvas');
     exportCanvas.width = w;
@@ -2771,7 +2776,7 @@ function startRecording() {
     exportCtx = exportCanvas.getContext('2d'); // alpha enabled
     exportAlphaMode = true;
     const stream = exportCanvas.captureStream(30);
-    const opts = { videoBitsPerSecond: 8000000, mimeType: bestWebm };
+    const opts = { videoBitsPerSecond: 8000000, mimeType: bestWebmAlpha };
     mediaRecorder = new MediaRecorder(stream, opts);
     mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
 
