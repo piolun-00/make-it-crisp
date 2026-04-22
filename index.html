@@ -1177,6 +1177,15 @@
           </div>
         </div>
         <div class="video-controls-row">
+          <div class="video-control-group" style="width:100%;">
+            <span class="slider-label">Export format</span>
+            <div class="pill-buttons">
+              <button class="pill-btn active" data-export-format="video">Video</button>
+              <button class="pill-btn" data-export-format="png">PNG Sequence</button>
+            </div>
+          </div>
+        </div>
+        <div class="video-controls-row">
           <div class="video-control-group bg-color-group">
             <span class="slider-label">Background color</span>
             <div class="color-input-row">
@@ -2308,6 +2317,15 @@ videoToggleBtn.addEventListener('click', () => {
   savePrefs();
 });
 
+// Export format buttons (Video / PNG Sequence)
+document.querySelectorAll('[data-export-format]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-export-format]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    pngSequenceMode = btn.dataset.exportFormat === 'png';
+  });
+});
+
 // Duration buttons
 document.querySelectorAll('[data-duration]').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -2643,6 +2661,10 @@ let recordedVideoBlob2 = null;
 let exportContrastBg = '#ffffff';
 let exportAlphaMode = false;
 let blobsReady = null;
+// PNG sequence
+let pngSequenceMode = false;
+let pngFrames = [];
+let pngFrameCount = 0;
 
 function isLogoBright(hex) {
   if (!hex || hex === 'transparent') return false;
@@ -2734,7 +2756,16 @@ function renderExportFrame(callback) {
       exportCtx2.drawImage(img, 0, 0, w, h);
     }
 
-    if (callback) callback();
+    // PNG sequence — capture frame as blob
+    if (pngSequenceMode && isRecording) {
+      const frameNum = pngFrameCount++;
+      exportCanvas.toBlob(blob => {
+        if (blob) pngFrames.push({ num: frameNum, blob });
+        if (callback) callback();
+      }, 'image/png');
+    } else {
+      if (callback) callback();
+    }
   };
   img.onerror = () => {
     if (callback) callback();
@@ -2744,7 +2775,7 @@ function renderExportFrame(callback) {
 
 function startRecording() {
   if (isRecording || !originalSvgContent || !videoMode) return;
-  if (typeof MediaRecorder === 'undefined') {
+  if (!pngSequenceMode && typeof MediaRecorder === 'undefined') {
     alert('Video recording is not supported in this browser.');
     return;
   }
@@ -2753,74 +2784,93 @@ function startRecording() {
   const isTransparent = videoBgColor === 'transparent';
 
   recordedChunks = [];
+  pngFrames = [];
+  pngFrameCount = 0;
 
-  // Detect best codecs
-  const webmVP9 = 'video/webm;codecs=vp9';
-  const webmVP8 = 'video/webm;codecs=vp8';
-  const webm = 'video/webm';
-  const mp4 = 'video/mp4';
-
-  const bestWebm = MediaRecorder.isTypeSupported(webmVP9) ? webmVP9 :
-                   MediaRecorder.isTypeSupported(webmVP8) ? webmVP8 :
-                   MediaRecorder.isTypeSupported(webm) ? webm : '';
-  // For alpha: prefer VP8 — Chrome's MediaRecorder reliably encodes alpha
-  // plane only with VP8. VP9 path drops alpha (YUV-only).
-  const bestWebmAlpha = MediaRecorder.isTypeSupported(webmVP8) ? webmVP8 :
-                        MediaRecorder.isTypeSupported(webmVP9) ? webmVP9 :
-                        MediaRecorder.isTypeSupported(webm) ? webm : '';
-  const bestMp4 = MediaRecorder.isTypeSupported(mp4) ? mp4 : '';
-
-  if (isTransparent && bestWebmAlpha && !isSafari) {
-    // WebM with alpha on main canvas (Chrome/Firefox)
+  if (pngSequenceMode) {
+    // PNG sequence — canvas with alpha, no MediaRecorder needed
     exportCanvas = document.createElement('canvas');
     exportCanvas.width = w;
     exportCanvas.height = h;
-    exportCtx = exportCanvas.getContext('2d'); // alpha enabled
-    exportAlphaMode = true;
-    const stream = exportCanvas.captureStream(30);
-    const opts = { videoBitsPerSecond: 8000000, mimeType: bestWebmAlpha };
-    mediaRecorder = new MediaRecorder(stream, opts);
-    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
-
-    // Contrast bg canvas for MP4 (no alpha)
-    exportCanvas2 = document.createElement('canvas');
-    exportCanvas2.width = w;
-    exportCanvas2.height = h;
-    exportCtx2 = exportCanvas2.getContext('2d', { alpha: false });
-    exportContrastBg = isLogoBright(videoLogoColor) ? '#000000' : '#ffffff';
-    exportCtx2.fillStyle = exportContrastBg;
-    exportCtx2.fillRect(0, 0, w, h);
-    recordedChunks2 = [];
-
-    const stream2 = exportCanvas2.captureStream(30);
-    const opts2 = { videoBitsPerSecond: 8000000 };
-    if (bestMp4) opts2.mimeType = bestMp4;
-    else opts2.mimeType = bestWebm;
-    mediaRecorder2 = new MediaRecorder(stream2, opts2);
-    mediaRecorder2.ondataavailable = e => { if (e.data.size > 0) recordedChunks2.push(e.data); };
-  } else {
-    // Single recording — solid bg or Safari transparent fallback
-    const effectiveBg = isTransparent
-      ? (isLogoBright(videoLogoColor) ? '#000000' : '#ffffff')
-      : videoBgColor;
-    if (isTransparent) exportContrastBg = effectiveBg;
-
-    exportCanvas = document.createElement('canvas');
-    exportCanvas.width = w;
-    exportCanvas.height = h;
-    exportCtx = exportCanvas.getContext('2d', { alpha: false });
-    exportCtx.fillStyle = effectiveBg;
-    exportCtx.fillRect(0, 0, w, h);
-    const stream = exportCanvas.captureStream(30);
-    const opts = { videoBitsPerSecond: 8000000 };
-    if (bestMp4) opts.mimeType = bestMp4;
-    else if (bestWebm) opts.mimeType = bestWebm;
-    mediaRecorder = new MediaRecorder(stream, opts);
-    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
-
+    exportCtx = exportCanvas.getContext('2d'); // alpha always enabled for PNG
+    exportAlphaMode = isTransparent;
+    if (!isTransparent) {
+      exportCtx.fillStyle = videoBgColor;
+      exportCtx.fillRect(0, 0, w, h);
+    }
     exportCanvas2 = null;
     exportCtx2 = null;
+    mediaRecorder = null;
     mediaRecorder2 = null;
+  } else {
+    // Detect best codecs
+    const webmVP9 = 'video/webm;codecs=vp9';
+    const webmVP8 = 'video/webm;codecs=vp8';
+    const webm = 'video/webm';
+    const mp4 = 'video/mp4';
+
+    const bestWebm = MediaRecorder.isTypeSupported(webmVP9) ? webmVP9 :
+                     MediaRecorder.isTypeSupported(webmVP8) ? webmVP8 :
+                     MediaRecorder.isTypeSupported(webm) ? webm : '';
+    // For alpha: prefer VP8 — Chrome's MediaRecorder reliably encodes alpha
+    // plane only with VP8. VP9 path drops alpha (YUV-only).
+    const bestWebmAlpha = MediaRecorder.isTypeSupported(webmVP8) ? webmVP8 :
+                          MediaRecorder.isTypeSupported(webmVP9) ? webmVP9 :
+                          MediaRecorder.isTypeSupported(webm) ? webm : '';
+    const bestMp4 = MediaRecorder.isTypeSupported(mp4) ? mp4 : '';
+
+    if (isTransparent && bestWebmAlpha && !isSafari) {
+      // WebM with alpha on main canvas (Chrome/Firefox)
+      exportCanvas = document.createElement('canvas');
+      exportCanvas.width = w;
+      exportCanvas.height = h;
+      exportCtx = exportCanvas.getContext('2d'); // alpha enabled
+      exportAlphaMode = true;
+      const stream = exportCanvas.captureStream(30);
+      const opts = { videoBitsPerSecond: 8000000, mimeType: bestWebmAlpha };
+      mediaRecorder = new MediaRecorder(stream, opts);
+      mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+
+      // Contrast bg canvas for MP4 (no alpha)
+      exportCanvas2 = document.createElement('canvas');
+      exportCanvas2.width = w;
+      exportCanvas2.height = h;
+      exportCtx2 = exportCanvas2.getContext('2d', { alpha: false });
+      exportContrastBg = isLogoBright(videoLogoColor) ? '#000000' : '#ffffff';
+      exportCtx2.fillStyle = exportContrastBg;
+      exportCtx2.fillRect(0, 0, w, h);
+      recordedChunks2 = [];
+
+      const stream2 = exportCanvas2.captureStream(30);
+      const opts2 = { videoBitsPerSecond: 8000000 };
+      if (bestMp4) opts2.mimeType = bestMp4;
+      else opts2.mimeType = bestWebm;
+      mediaRecorder2 = new MediaRecorder(stream2, opts2);
+      mediaRecorder2.ondataavailable = e => { if (e.data.size > 0) recordedChunks2.push(e.data); };
+    } else {
+      // Single recording — solid bg or Safari transparent fallback
+      const effectiveBg = isTransparent
+        ? (isLogoBright(videoLogoColor) ? '#000000' : '#ffffff')
+        : videoBgColor;
+      if (isTransparent) exportContrastBg = effectiveBg;
+
+      exportCanvas = document.createElement('canvas');
+      exportCanvas.width = w;
+      exportCanvas.height = h;
+      exportCtx = exportCanvas.getContext('2d', { alpha: false });
+      exportCtx.fillStyle = effectiveBg;
+      exportCtx.fillRect(0, 0, w, h);
+      const stream = exportCanvas.captureStream(30);
+      const opts = { videoBitsPerSecond: 8000000 };
+      if (bestMp4) opts.mimeType = bestMp4;
+      else if (bestWebm) opts.mimeType = bestWebm;
+      mediaRecorder = new MediaRecorder(stream, opts);
+      mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+
+      exportCanvas2 = null;
+      exportCtx2 = null;
+      mediaRecorder2 = null;
+    }
   }
 
   // Start
@@ -2835,13 +2885,16 @@ function startRecording() {
   videoToggleBtn.style.pointerEvents = 'none';
   document.querySelectorAll('[data-duration]').forEach(b => b.style.pointerEvents = 'none');
   document.querySelectorAll('[data-ratio]').forEach(b => b.style.pointerEvents = 'none');
+  document.querySelectorAll('[data-export-format]').forEach(b => b.style.pointerEvents = 'none');
   // Block bottom-left buttons during recording
   document.getElementById('bottom-left').style.opacity = '0.4';
   document.getElementById('bottom-left').style.pointerEvents = 'none';
 
   // WebM handles chunked recording fine; MP4 needs single chunk (no timeslice)
-  const isMp4Main = mediaRecorder.mimeType.includes('mp4');
-  mediaRecorder.start(isMp4Main ? undefined : 100);
+  if (mediaRecorder) {
+    const isMp4Main = mediaRecorder.mimeType.includes('mp4');
+    mediaRecorder.start(isMp4Main ? undefined : 100);
+  }
   if (mediaRecorder2) {
     const isMp4Second = mediaRecorder2.mimeType.includes('mp4');
     mediaRecorder2.start(isMp4Second ? undefined : 100);
@@ -2900,34 +2953,39 @@ function stopRecording() {
   let blobsResolve;
   blobsReady = new Promise(resolve => { blobsResolve = resolve; });
 
-  // Render final frame, then wait briefly for encoder to flush, then stop recorders
+  // Render final frame, then stop recorders / resolve blobs
   renderExportFrame(() => {
-    setTimeout(() => {
-      const stops = [];
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        stops.push(new Promise(resolve => {
-          mediaRecorder.onstop = resolve;
-          mediaRecorder.stop();
-        }));
-      }
-      if (mediaRecorder2 && mediaRecorder2.state !== 'inactive') {
-        stops.push(new Promise(resolve => {
-          mediaRecorder2.onstop = resolve;
-          mediaRecorder2.stop();
-        }));
-      }
+    if (pngSequenceMode) {
+      // PNG mode: no MediaRecorder, frames already collected — resolve immediately
+      blobsResolve();
+    } else {
+      setTimeout(() => {
+        const stops = [];
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          stops.push(new Promise(resolve => {
+            mediaRecorder.onstop = resolve;
+            mediaRecorder.stop();
+          }));
+        }
+        if (mediaRecorder2 && mediaRecorder2.state !== 'inactive') {
+          stops.push(new Promise(resolve => {
+            mediaRecorder2.onstop = resolve;
+            mediaRecorder2.stop();
+          }));
+        }
 
-      Promise.all(stops).then(() => {
-        if (recordedChunks.length > 0) {
-          recordedVideoBlob = new Blob(recordedChunks, { type: mediaRecorder.mimeType });
-          recordedVideoUrl = URL.createObjectURL(recordedVideoBlob);
-        }
-        if (recordedChunks2.length > 0) {
-          recordedVideoBlob2 = new Blob(recordedChunks2, { type: mediaRecorder2.mimeType });
-        }
-        blobsResolve();
-      });
-    }, 200);
+        Promise.all(stops).then(() => {
+          if (recordedChunks.length > 0) {
+            recordedVideoBlob = new Blob(recordedChunks, { type: mediaRecorder.mimeType });
+            recordedVideoUrl = URL.createObjectURL(recordedVideoBlob);
+          }
+          if (recordedChunks2.length > 0) {
+            recordedVideoBlob2 = new Blob(recordedChunks2, { type: mediaRecorder2.mimeType });
+          }
+          blobsResolve();
+        });
+      }, 200);
+    }
   });
 }
 
@@ -2941,6 +2999,8 @@ function cleanupRecording() {
   recordedVideoBlob2 = null;
   recordedChunks = [];
   recordedChunks2 = [];
+  pngFrames = [];
+  pngFrameCount = 0;
   exportCanvas = null;
   exportCtx = null;
   exportCanvas2 = null;
@@ -2965,6 +3025,7 @@ function cleanupRecording() {
   videoToggleBtn.style.pointerEvents = '';
   document.querySelectorAll('[data-duration]').forEach(b => b.style.pointerEvents = '');
   document.querySelectorAll('[data-ratio]').forEach(b => b.style.pointerEvents = '');
+  document.querySelectorAll('[data-export-format]').forEach(b => b.style.pointerEvents = '');
   // Restore cursor
   canvasWrap.classList.remove('cursor-replay');
   document.getElementById('artboard').classList.remove('cursor-replay');
@@ -2995,6 +3056,24 @@ async function downloadRecordedVideo() {
 
   const isTransparent = videoBgColor === 'transparent';
 
+  // ── PNG Sequence ──
+  if (pngSequenceMode && pngFrames.length > 0) {
+    if (typeof JSZip !== 'undefined') {
+      const zip = new JSZip();
+      const folder = zip.folder('frames');
+      // sort by frame number (async toBlob may arrive out of order)
+      pngFrames.sort((a, b) => a.num - b.num);
+      pngFrames.forEach(f => {
+        const name = `frame_${String(f.num).padStart(5, '0')}.png`;
+        folder.file(name, f.blob);
+      });
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      downloadBlob(zipBlob, getExportFilename('zip'));
+    }
+    return;
+  }
+
+  // ── Video ──
   if (isTransparent && recordedVideoBlob2) {
     // ZIP: WebM (alpha) + MP4/WebM (contrast bg)
     if (typeof JSZip !== 'undefined') {
